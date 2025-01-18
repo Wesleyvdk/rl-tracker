@@ -1,0 +1,25 @@
+{
+  "name": "rl-platform-test-datafetch",
+  "version": "1.0.0",
+  "main": "app.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npm run deploy && npm run bot",
+    "bot": "ts-node app.ts",
+    "deploy": "ts-node deploy.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.10.2"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.65",
+    "axios": "^1.7.9",
+    "discord.js": "latest",
+    "dotenv": "^16.4.5",
+    "moment": "^2.30.1",
+    "puppeteer": "^23.11.1"
+  }
+}
