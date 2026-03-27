@@ -9,6 +9,10 @@ services:
       - .env
     environment:
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      DATABASE_PATH: /app/data/database.sqlite
     volumes:
-      - ./database.sqlite:/app/database.sqlite
+      - sqlite_data:/app/data
     shm_size: "1gb"
+
+volumes:
+  sqlite_data:

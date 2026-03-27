@@ -1,8 +1,15 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 
 // Initialize SQLite database
 // Bun automatically creates this file if it doesn't exist
-const db = new Database("database.sqlite", { create: true });
+const databasePath = process.env.DATABASE_PATH || "database.sqlite";
+const databaseDir = path.dirname(databasePath);
+if (databaseDir && databaseDir !== ".") {
+  mkdirSync(databaseDir, { recursive: true });
+}
+const db = new Database(databasePath, { create: true });
 
 // Enable Write-Ahead Logging for better concurrent performance
 db.exec("PRAGMA journal_mode = WAL;");
