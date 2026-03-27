@@ -1,0 +1,14 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rl-tracker-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+    volumes:
+      - ./database.sqlite:/app/database.sqlite
+    shm_size: "1gb"
