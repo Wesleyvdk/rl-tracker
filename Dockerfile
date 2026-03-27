@@ -50,6 +50,4 @@ RUN bun install
 
 COPY . .
 
-USER bun
-
 CMD ["bun", "run", "start"]
