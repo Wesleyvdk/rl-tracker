@@ -1,3 +1,5 @@
+import { Collection, Client } from "discord.js";
+
 export interface RankData {
   mode: string;
   Current: {
@@ -18,8 +20,6 @@ export interface PeakRating {
   [key: string]: RankData;
 }
 
-import { Collection, Client } from "discord.js";
-
 export interface Player {
   name: string;
   matches: number;
@@ -30,7 +30,7 @@ export interface Player {
 
 export interface Command {
   data: CommandData;
-  execute: (client: Client, interaction: any, browser: any) => void;
+  execute: (client: Client, interaction: any) => void;
   // Add other properties as needed
 }
 
@@ -83,4 +83,28 @@ export interface ParsedRanks {
   "Ranked Doubles 2v2": RankInfo;
   "Ranked Standard 3v3": RankInfo;
   "Tournament Matches": RankInfo;
+}
+
+export interface SeasonData {
+  season: string;
+  totalMatches?: number; // Total matches played in this season (sum of all playlists)
+  playlists: {
+    [key: string]: {
+      rank: string;
+      matches: number;
+    };
+  };
+}
+
+export interface AverageStats {
+  playlist: string;
+  averageMatches: number;
+  averageRankTier: number; // Numeric representation of rank
+  averageRankName: string; // Approximate rank name
+}
+
+export interface SeasonStatsResult {
+  seasonData: SeasonData[];
+  averageStats: AverageStats[];
+  failureReason?: "invalid_profile_input" | "cloudflare_blocked" | "profile_not_found" | "table_unavailable";
 }

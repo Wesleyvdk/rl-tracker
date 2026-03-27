@@ -3,3 +3,10 @@ node_modules
 /.cache
 /build
 .env
+database.sqlite
+*.sqlite
+debug-*.log
+
+.agents
+.claude
+bun.lock
