@@ -1,116 +1,70 @@
-<div id="top">
+# rl-tracker
 
-<!-- HEADER STYLE: CLASSIC -->
-<div align="center">
+A standalone Rocket League Discord bot running entirely on your VPS. It uses local retrieval, parsing, SQLite caching, and image rendering. No hosted crawler, paid proxy, or AI extraction service is required. AP-Gaming has its own repository, bot application, configuration, container, and database; these projects are never combined.
 
+## Crawler decision
 
-# RL-TRACKER
+The initial local comparison is recorded in [benchmark/README.md](benchmark/README.md). Scrapling and Crawl4AI's tested configurations returned profile shells or error pages without stats. The existing Puppeteer-extra path retrieved data, so it remains the retrieval engine until another local candidate passes the same correctness check. This is a limited probe, not a claim that those libraries can never work.
 
-<em>Transforming Data into Winning Insights Instantly</em>
+Retrieval is separate from the validated HTML parser, persistent profile cache, and request queue. The parser reads all named ranked playlists, retains zero versus missing values, and uses the page's own division-up/down values instead of old hardcoded thresholds.
 
-<!-- BADGES -->
-<img src="https://img.shields.io/github/last-commit/Wesleyvdk/rl-tracker?style=flat&logo=git&logoColor=white&color=0080ff" alt="last-commit">
-<img src="https://img.shields.io/github/languages/top/Wesleyvdk/rl-tracker?style=flat&color=0080ff" alt="repo-top-language">
-<img src="https://img.shields.io/github/languages/count/Wesleyvdk/rl-tracker?style=flat&color=0080ff" alt="repo-language-count">
+## Setup
 
-<em>Built with the tools and technologies:</em>
+Use Bun 1.3.8 (the Docker runtime). Run `bun install --frozen-lockfile`. Copy `.env.example` to `.env` and set this application's `BOT_TOKEN` and `CLIENTID`. The bot needs the Guilds intent and channel permissions to send messages, embed links, and attach files. No privileged member intent is required for the per-user leaderboard membership checks.
 
-<img src="https://img.shields.io/badge/JSON-000000.svg?style=flat&logo=JSON&logoColor=white" alt="JSON">
-<img src="https://img.shields.io/badge/npm-CB3837.svg?style=flat&logo=npm&logoColor=white" alt="npm">
-<img src="https://img.shields.io/badge/.ENV-ECD53F.svg?style=flat&logo=dotenv&logoColor=black" alt=".ENV">
-<img src="https://img.shields.io/badge/Puppeteer-40B5A4.svg?style=flat&logo=Puppeteer&logoColor=white" alt="Puppeteer">
-<img src="https://img.shields.io/badge/TypeScript-3178C6.svg?style=flat&logo=TypeScript&logoColor=white" alt="TypeScript">
-<img src="https://img.shields.io/badge/Discord-5865F2.svg?style=flat&logo=Discord&logoColor=white" alt="Discord">
-<img src="https://img.shields.io/badge/Axios-5A29E4.svg?style=flat&logo=Axios&logoColor=white" alt="Axios">
-
-</div>
-<br>
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Usage](#usage)
-    - [Testing](#testing)
-
----
-
-## Overview
-
-rl-tracker is a comprehensive developer toolset for automating Rocket League player data collection, visualization, and community interaction within Discord. It combines web scraping, real-time data processing, and visual rendering to create engaging player profiles and rankings.
-
-**Why rl-tracker?**
-
-This project aims to simplify the integration of Rocket League stats into your community or application. The core features include:
-
-- 🧩 **🔧 Data Fetching & Processing:** Automates retrieval and analysis of player rankings and match data.
-- 🎨 **🖼️ Rank Card Generation:** Creates visually appealing images showcasing player stats and ranks.
-- 🕸️ **Web Scraping & Real-Time Updates:** Gathers live data directly from tracker pages for accurate insights.
-- 💬 **🤖 Discord Bot Integration:** Manages commands, interactions, and real-time updates seamlessly.
-- 🛠️ **Modular & Maintainable Architecture:** Built with TypeScript, supporting easy customization and scaling.
-- ⚙️ **Robust Command & Error Handling:** Ensures reliable operation and user-friendly feedback.
-
----
-
-## Getting Started
-
-### Prerequisites
-
-This project requires the following dependencies:
-
-- **Programming Language:** TypeScript
-- **Package Manager:** Npm
-
-### Installation
-
-Build rl-tracker from the source and install dependencies:
-
-1. **Clone the repository:**
-
-    ```sh
-    ❯ git clone https://github.com/Wesleyvdk/rl-tracker
-    ```
-
-2. **Navigate to the project directory:**
-
-    ```sh
-    ❯ cd rl-tracker
-    ```
-
-3. **Install the dependencies:**
-
-**Using [npm](https://www.npmjs.com/):**
+`bun run deploy` registers commands explicitly. Set `TEST_GUILD_ID` to target a test server; otherwise registration is global. Startup never registers commands. Use a separate Discord application for test-server command/message checks; automated tests do not send Discord messages.
 
 ```sh
-❯ npm install
+bun test
+bun run typecheck
+bun run deploy
+bun start
 ```
 
-### Usage
+For direct host execution, install Chromium and set `PUPPETEER_EXECUTABLE_PATH` to its path. Docker includes it.
 
-Run the project with:
+## Commands and caching
 
-**Using [npm](https://www.npmjs.com/):**
+- `/link` and `/unlink` manage the user's linked platform/profile.
+- `/rank` returns a cached snapshot immediately when present, with retrieval time. Stale snapshots trigger background refreshes. A new profile waits for one bounded retrieval.
+- `/leaderboard` uses cached snapshots of linked users in the current server and starts missing/stale refreshes in the background. It does not wait for every profile to scrape.
+- `/avgmatches` uses cached season history. Missing match counts remain unavailable; they are excluded from averages instead of treated as zero. Zero matches remains a valid observation.
+
+All retrieval goes through one priority queue. Concurrent requests for the same profile share one job. Interactive requests take priority over background jobs. Current-profile failures enter a five-minute cooldown and preserve the last good snapshot. Profile/history freshness is one hour. Rank retrieval is bounded to 45 seconds after browser launch; season retrieval is bounded to 120 seconds. Cached results reflect retrieval time, not a guarantee that Tracker's upstream data is current.
+
+The `users` table and existing links are preserved. Startup adds `profile_cache` and `season_cache`; successful legacy snapshots seed the profile cache. Relinking during a refresh cannot apply the previous account's new snapshot to the changed link.
+
+## Verified browser on this VPS
+
+The rollout uses `RL_TRACKER_BASE_IMAGE=rl-tracker:before-local-restoration-20261015` to preserve the already deployed Chromium 146. Updated bot dependencies retrieved seven playlists with that browser; the newly installed Chromium 155 repeatedly returned upstream error pages. The prior browser image is a local rollback artifact, not a new download. Keep it available (`docker save` can archive it). New installations default to the Bun base image and installed Chromium, which must pass the live retrieval gate before production. Browser upgrades remain a separate verification step; a clean JavaScript dependency audit does not assess browser system packages.
+
+## Docker operation
 
 ```sh
-npm start
+docker compose build
+docker compose up -d
+docker compose ps
+docker compose logs --tail=50 bot
 ```
 
-### Testing
+The Compose project is explicitly named `rl-tracker` and retains the existing `rl-tracker_sqlite_data` volume. AP-Gaming uses a separate Compose project and volume. No public ports are exposed. Compose applies a 1 GB memory limit, one CPU, log rotation, and a restart policy. Do not run two production instances using the same Discord token.
 
-Rl-tracker uses the {__test_framework__} test framework. Run the test suite with:
+Health checks verify a recent heartbeat and a connected Discord client. `/tmp/rl-tracker-health.json` also records the last refresh attempt and last successful profile snapshot, so a connected bot can be distinguished from working data retrieval.
 
-**Using [npm](https://www.npmjs.com/):**
+## Backup, upgrade, and rollback
 
 ```sh
-npm test
+mkdir -p backups
+docker compose exec bot bun run scripts/backup.ts
+docker cp rl-tracker-bot:/app/backups/. ./backups/
 ```
 
----
+Backups use SQLite `VACUUM INTO` and run `PRAGMA integrity_check`. Copy them out of the container promptly, since `/app/backups` is not the database volume. Schedule the backup-and-copy commands with the VPS scheduler for regular backups. Store `.env` separately with restricted permissions.
 
-<div align="left"><a href="#top">⬆ Return</a></div>
+Before replacing a running container, retain its image tag and create a backup. Stop the bot before restoring into an empty database volume. Restore `database.sqlite` with permissions readable/writable by the container user, run an integrity check, and start exactly one instance. Existing cache tables are additive; no user data is dropped by migration.
 
----
+## Verification and remaining trial
+
+`bun test` covers the public table fixture, extra playlists, source-provided thresholds, missing/zero values, cache preservation, duplicate requests, queue priority/failure recovery, season averages, and profile/season-label normalization. `bun run typecheck` checks TypeScript.
+
+A live retrieval probe verified seven ranked playlists from the VPS after the parser change. Longer-term availability, platform coverage, full season-history switching, and Discord command rendering still need observation during the rollout. The benchmark's raw HTML and local databases are ignored by Git.

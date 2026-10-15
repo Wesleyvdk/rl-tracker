@@ -1,96 +1,86 @@
-import { Client, GatewayIntentBits } from "discord.js";
-import { config } from "dotenv";
-import handleError from "./handlers/errorHandler";
-import { commands } from "./deploy";
+import "dotenv/config";
+import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js";
 import cron from "node-cron";
-import { getAllAccounts, updateStats } from "./services/database.service";
-import getRanksByTable from "./services/getRanksByTable.service";
-config();
+import { writeFileSync, rmSync } from "node:fs";
+import { loadCommands } from "./services/commandLoader";
+import { refreshLinkedProfiles } from "./services/profile.service";
+import { shutdownBrowsers } from "./services/browser.service";
+import { db } from "./services/database.service";
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.DirectMessages,
-  ],
-});
-const token: string = process.env.BOT_TOKEN || "";
-const clientId: string = process.env.CLIENTID || "";
-
-/** Cleanly shut down Discord client on exit. */
-async function shutdown(signal: string) {
-  console.log(`[SHUTDOWN] Received ${signal}...`);
-  try { client.destroy(); } catch (_) { }
-  process.exit(0);
-}
-
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-
-client.on("ready", async () => {
-  console.log(`Logged in as ${client.user?.tag}!`);
-
-  // --- BACKGROUND CRON JOB: Hourly Cache Refresh ---
-  // Runs at minute 0 past every hour
-  cron.schedule("0 * * * *", async () => {
-    console.log("[CRON] Starting hourly MMR refresh for stale accounts...");
-
-    const allAccounts = getAllAccounts();
-    const staleThreshold = Date.now() - (60 * 60 * 1000); // 1 hour
-
-    // Find accounts older than 1 hour or missing JSON
-    const staleAccounts = allAccounts.filter(acc => !acc.last_updated || acc.last_updated < staleThreshold || !acc.stats_json);
-
-    console.log(`[CRON] Found ${staleAccounts.length} stale accounts to refresh.`);
-
-    // Process sequentially to avoid rate limits
-    for (const account of staleAccounts) {
-      try {
-        console.log(`[CRON] Refreshing ${account.playername}...`);
-        const res = await getRanksByTable(account.playername, account.platform);
-
-        if (!res.error && res.tableData) {
-          updateStats(account.discord_id, JSON.stringify(res.tableData));
-          console.log(`[CRON] Successfully updated ${account.playername}.`);
-        }
-      } catch (e) {
-        console.error(`[CRON] Error refreshing ${account.playername}:`, e);
-      }
-
-      // Wait 10 seconds between requests to avoid Tracker.gg bans
-      await new Promise(r => setTimeout(r, 10000));
-    }
-    console.log("[CRON] Hourly refresh complete.");
-  });
-});
-
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-
-  for (const command of commands) {
-    if (command.data.name === interaction.commandName) {
-      // Don't await — let each command run independently so the event loop
-      // stays free to handle new interactions (deferReply has a 3s deadline)
-      Promise.resolve(command.execute(client, interaction)).catch(async (e: any) => {
-        console.error(`Unhandled error in command ${interaction.commandName}:`, e);
-        try {
-          if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({
-              content: "There was an error processing this command",
-              ephemeral: true,
-            });
-          } else {
-            await interaction.reply({
-              content: "There was an error processing this command",
-              ephemeral: true,
-            });
-          }
-        } catch (_) {
-          // Interaction may have expired, nothing we can do
-        }
-      });
-    }
+const commands = await loadCommands();
+if (!process.env.BOT_TOKEN) throw new Error("BOT_TOKEN is required");
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const healthPath = process.env.HEALTH_PATH || "/tmp/rl-tracker-health.json";
+let refreshing = false;
+let lastRefreshAt: number | null = null;
+const job = cron.schedule("0 * * * *", async () => {
+  if (refreshing || !client.isReady()) return;
+  refreshing = true;
+  try {
+    await refreshLinkedProfiles();
+    lastRefreshAt = Date.now();
+  } catch (error) {
+    console.error("Scheduled refresh failed:", String(error));
+  } finally {
+    refreshing = false;
   }
 });
-
-client.login(token);
+const heartbeat = setInterval(
+  () =>
+    writeFileSync(
+      healthPath,
+      JSON.stringify({
+        connected: client.isReady(),
+        at: Date.now(),
+        lastRefreshAttemptAt: lastRefreshAt,
+        refreshing,
+        lastSuccessfulProfileAt: (
+          db.query("SELECT MAX(fetched_at) AS at FROM profile_cache").get() as {
+            at: number | null;
+          }
+        ).at,
+      }),
+    ),
+  10000,
+);
+client.once(Events.ClientReady, () =>
+  console.log(`rl-tracker connected as ${client.user?.tag}`),
+);
+client.on(Events.InteractionCreate, async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+  try {
+    await commands
+      .find((command) => command.data.name === interaction.commandName)
+      ?.execute(client, interaction);
+  } catch (error) {
+    console.error("Command failed:", String(error));
+    try {
+      const payload = {
+        content: "The request could not be completed. Please retry shortly.",
+        flags: MessageFlags.Ephemeral,
+      } as const;
+      if (interaction.deferred || interaction.replied)
+        await interaction.followUp(payload);
+      else await interaction.reply(payload);
+    } catch {}
+  }
+});
+async function shutdown() {
+  job.stop();
+  clearInterval(heartbeat);
+  await client.destroy();
+  await shutdownBrowsers();
+  rmSync(healthPath, { force: true });
+  db.close();
+  process.exit(0);
+}
+process.once("SIGINT", shutdown);
+process.once("SIGTERM", shutdown);
+try {
+  await client.login(process.env.BOT_TOKEN);
+} catch (error) {
+  job.stop();
+  clearInterval(heartbeat);
+  db.close();
+  throw error;
+}

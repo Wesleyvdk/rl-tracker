@@ -1,15 +1,12 @@
 import {
   Client,
-  CommandInteraction,
+  ChatInputCommandInteraction,
   EmbedBuilder,
   SlashCommandBuilder,
   MessageFlags,
 } from "discord.js";
 import generateRankCard from "../../services/generateRankCard.service";
-import { PlayerData } from "../../types";
-import path from "path";
-import getRanksByTable from "../../services/getRanksByTable.service";
-import { requestQueue } from "../../services/requestQueue.service";
+import { profileCache } from "../../services/profile.service";
 import { getAccount, updateStats } from "../../services/database.service";
 import { normalizePlatform } from "../../services/trackerProfile.service";
 export const data = new SlashCommandBuilder()
@@ -20,11 +17,11 @@ export const data = new SlashCommandBuilder()
       .setName("playername")
       .setDescription("The player's name (optional if linked)")
       .setRequired(false);
-  })
+  });
 
 export async function execute(
   client: Client,
-  interaction: CommandInteraction
+  interaction: ChatInputCommandInteraction,
 ) {
   let playername = (interaction.options as any).getString("playername");
   let platform = "epic";
@@ -33,7 +30,8 @@ export async function execute(
     const account = getAccount(interaction.user.id);
     if (!account) {
       return interaction.reply({
-        content: "❌ You haven't linked a Rocket League profile yet! Use `/link` or provide a player name.",
+        content:
+          "❌ You haven't linked a Rocket League profile yet! Use `/link` or provide a player name.",
         flags: [MessageFlags.Ephemeral],
       });
     }
@@ -43,7 +41,10 @@ export async function execute(
 
   const safeReply = async (options: any) => {
     try {
-      return await interaction.editReply(options);
+      return await interaction.editReply({
+        ...options,
+        allowedMentions: { parse: [] },
+      });
     } catch (e: any) {
       if (e?.code === 10062) {
         console.log(`Interaction expired for ${playername} rank request`);
@@ -57,20 +58,27 @@ export async function execute(
     await interaction.deferReply();
 
     // Check if the user is checking their OWN linked account vs a random string
-    const isLinkedAccount = !!(interaction.options as any).getString("playername") === false;
+    const isLinkedAccount =
+      !!(interaction.options as any).getString("playername") === false;
     const discordId = interaction.user.id;
 
-    const ranks = await requestQueue.enqueue(() =>
-      getRanksByTable(playername, platform)
-    );
+    const ranks = await profileCache.get(playername, platform);
 
-    if (ranks.error) {
+    if (!ranks.tableData?.length) {
       return safeReply({ content: ranks.error });
     }
 
     // Passively keep the leaderboard cache warm
     if (isLinkedAccount && ranks.tableData) {
-      updateStats(discordId, JSON.stringify(ranks.tableData));
+      updateStats(
+        discordId,
+        JSON.stringify(ranks.tableData),
+        {
+          playername,
+          platform,
+        },
+        ranks.fetchedAt,
+      );
     }
 
     const playerData = {
@@ -82,7 +90,8 @@ export async function execute(
     const image = await generateRankCard(playerData);
 
     const embedObject = {
-      title: `${interaction.user.username}'s rank`,
+      title: `${playername}'s rank`,
+      description: `${ranks.stale ? "Cached stats; refresh requested. " : ""}Retrieved ${new Date(ranks.fetchedAt || Date.now()).toISOString()}`,
       image: {
         url: `attachment://${image.name}`,
       },

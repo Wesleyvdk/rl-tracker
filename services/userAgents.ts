@@ -8,5 +8,8 @@ const USER_AGENTS = [
 ];
 
 export function getRandomUserAgent(): string {
-  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+  return (
+    process.env.SCRAPER_USER_AGENT ||
+    USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)]
+  );
 }

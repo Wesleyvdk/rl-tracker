@@ -1,12 +1,11 @@
 import {
   Client,
-  CommandInteraction,
+  ChatInputCommandInteraction,
   SlashCommandBuilder,
   MessageFlags,
 } from "discord.js";
 import generateAverageCard from "../../services/generateAverageCard.service";
-import getSeasonStats from "../../services/getSeasonStats.service";
-import { requestQueue } from "../../services/requestQueue.service";
+import { getSeasonStatsCached } from "../../services/season.service";
 import { getAccount } from "../../services/database.service";
 import { normalizePlatform } from "../../services/trackerProfile.service";
 
@@ -22,40 +21,48 @@ export const data = new SlashCommandBuilder()
   .addIntegerOption((option) => {
     return option
       .setName("seasons")
-      .setDescription("Number of seasons to analyze (default: 0 for ALL seasons)")
+      .setDescription(
+        "Number of seasons to analyze (default: 0 for ALL seasons)",
+      )
       .setRequired(false)
       .setMinValue(0);
-  }).addStringOption((option) => {
+  })
+  .addStringOption((option) => {
     return option
-      .setName('platform')
-      .setDescription('The platform')
+      .setName("platform")
+      .setDescription("The platform")
       .addChoices(
-        { name: 'Epic', value: 'epic' },
-        { name: 'Steam', value: 'steam' },
-        { name: 'Xbox', value: 'xbox' },
-        { name: 'PlayStation', value: 'psn' },
-      )
-  }).addBooleanOption((option) => {
+        { name: "Epic", value: "epic" },
+        { name: "Steam", value: "steam" },
+        { name: "Xbox", value: "xbox" },
+        { name: "PlayStation", value: "psn" },
+      );
+  })
+  .addBooleanOption((option) => {
     return option
-      .setName('competitive_only')
-      .setDescription('Only show core competitive modes (1v1, 2v2, 3v3) (default: true)')
+      .setName("competitive_only")
+      .setDescription(
+        "Only show core competitive modes (1v1, 2v2, 3v3) (default: true)",
+      )
       .setRequired(false);
   });
 
 export async function execute(
   client: Client,
-  interaction: CommandInteraction
+  interaction: ChatInputCommandInteraction,
 ) {
   let playername = (interaction.options as any).getString("playername");
   let platform = (interaction.options as any).getString("platform");
   const seasons = (interaction.options as any).getInteger("seasons") ?? 0;
-  const competitiveOnly = (interaction.options as any).getBoolean("competitive_only") ?? true;
+  const competitiveOnly =
+    (interaction.options as any).getBoolean("competitive_only") ?? true;
 
   if (!playername) {
     const account = getAccount(interaction.user.id);
     if (!account) {
       return interaction.reply({
-        content: "❌ You haven't linked a Rocket League profile yet! Use `/link` or provide a player name.",
+        content:
+          "❌ You haven't linked a Rocket League profile yet! Use `/link` or provide a player name.",
         flags: [MessageFlags.Ephemeral],
       });
     }
@@ -81,8 +88,11 @@ export async function execute(
 
   try {
     await interaction.deferReply();
-    const stats = await requestQueue.enqueue(() =>
-      getSeasonStats(playername, platform, seasons, competitiveOnly)
+    const stats = await getSeasonStatsCached(
+      playername,
+      platform,
+      seasons,
+      competitiveOnly,
     );
 
     if (stats.seasonData.length === 0) {
@@ -111,7 +121,7 @@ export async function execute(
 
     const embedObject = {
       title: `${playername}'s Match History`,
-      description: `Analyzed ${stats.seasonData.length} seasons`,
+      description: `Analyzed ${stats.seasonData.length} seasons. ${stats.stale ? "Cached history; refresh requested. " : ""}Retrieved ${new Date(stats.fetchedAt || Date.now()).toISOString()}`,
       image: {
         url: `attachment://${image.name}`,
       },

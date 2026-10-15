@@ -9,7 +9,7 @@ const databaseDir = path.dirname(databasePath);
 if (databaseDir && databaseDir !== ".") {
   mkdirSync(databaseDir, { recursive: true });
 }
-const db = new Database(databasePath, { create: true });
+export const db = new Database(databasePath, { create: true });
 
 // Enable Write-Ahead Logging for better concurrent performance
 db.exec("PRAGMA journal_mode = WAL;");
@@ -48,7 +48,11 @@ export interface UserAccount {
 /**
  * Link a Discord account to a Rocket League tracker profile
  */
-export function linkAccount(discordId: string, playername: string, platform: string): void {
+export function linkAccount(
+  discordId: string,
+  playername: string,
+  platform: string,
+): void {
   const stmt = db.prepare(`
     INSERT INTO users (discord_id, playername, platform, created_at)
     VALUES (?, ?, ?, ?)
@@ -83,13 +87,30 @@ export function unlinkAccount(discordId: string): boolean {
 /**
  * Update cached JSON stats for a user (includes all modes)
  */
-export function updateStats(discordId: string, statsJson: string): void {
+export function updateStats(
+  discordId: string,
+  statsJson: string,
+  expected?: { playername: string; platform: string },
+  fetchedAt = Date.now(),
+): void {
+  if (expected) {
+    db.prepare(
+      "UPDATE users SET stats_json=?,last_updated=? WHERE discord_id=? AND playername=? AND platform=?",
+    ).run(
+      statsJson,
+      Date.now(),
+      discordId,
+      expected.playername,
+      expected.platform,
+    );
+    return;
+  }
   const stmt = db.prepare(`
     UPDATE users 
     SET stats_json = ?, last_updated = ?
     WHERE discord_id = ?
   `);
-  stmt.run(statsJson, Date.now(), discordId);
+  stmt.run(statsJson, fetchedAt, discordId);
 }
 
 /**
@@ -100,7 +121,9 @@ export function getAccountsByDiscordIds(discordIds: string[]): UserAccount[] {
 
   // Create placeholders like ?, ?, ?
   const placeholders = discordIds.map(() => "?").join(",");
-  const stmt = db.prepare(`SELECT * FROM users WHERE discord_id IN (${placeholders})`);
+  const stmt = db.prepare(
+    `SELECT * FROM users WHERE discord_id IN (${placeholders})`,
+  );
 
   return stmt.all(...discordIds) as UserAccount[];
 }

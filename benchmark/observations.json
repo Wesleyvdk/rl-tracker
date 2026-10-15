@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-15",
+  "scope": "Initial probe of one known Epic profile; not an availability study. RSS excludes child browser processes.",
+  "existing_puppeteer": {
+    "seconds": 6.928,
+    "ranked_playlists_returned": 4,
+    "usable_stats": true
+  },
+  "candidates": [
+    {
+      "engine": "scrapling-stealth",
+      "url": "https://rocketleague.tracker.network/rocket-league/profile/epic/ehzgodd/overview",
+      "status": 200,
+      "seconds": 12.32,
+      "max_rss_mib": 62.4,
+      "bytes": 172000,
+      "playlist_rows": 0,
+      "title": "ehzgodd's Rocket League Stats - Rocket League Tracker",
+      "error": null,
+      "usable_stats": false,
+      "browser_environment": "Chromium 155",
+      "configuration": "library defaults except local executable"
+    },
+    {
+      "engine": "crawl4ai",
+      "url": "https://rocketleague.tracker.network/rocket-league/profile/epic/ehzgodd/overview",
+      "status": 200,
+      "seconds": 7.88,
+      "max_rss_mib": 119.3,
+      "bytes": 172846,
+      "playlist_rows": 0,
+      "title": "ehzgodd's Rocket League Stats - Rocket League Tracker",
+      "error": null,
+      "usable_stats": false,
+      "browser_environment": "Chromium 155",
+      "configuration": "library defaults except local executable"
+    },
+    {
+      "engine": "scrapling-http",
+      "url": "https://rocketleague.tracker.network/rocket-league/profile/epic/ehzgodd/overview",
+      "status": 200,
+      "seconds": 0.78,
+      "max_rss_mib": 51.8,
+      "bytes": 113899,
+      "playlist_rows": 0,
+      "title": "ehzgodd's Rocket League Stats - Rocket League Tracker",
+      "error": null,
+      "usable_stats": false,
+      "browser_environment": "Chromium 155",
+      "configuration": "library defaults except local executable"
+    },
+    {
+      "engine": "scrapling-browser",
+      "url": "https://rocketleague.tracker.network/rocket-league/profile/epic/ehzgodd/overview",
+      "status": 200,
+      "seconds": 5.21,
+      "max_rss_mib": 56.9,
+      "bytes": 173048,
+      "playlist_rows": 0,
+      "title": "ehzgodd's Rocket League Stats - Rocket League Tracker",
+      "error": null,
+      "usable_stats": false,
+      "browser_environment": "Chromium 155",
+      "configuration": "library defaults except local executable"
+    },
+    {
+      "engine": "scrapling-stealth",
+      "url": "https://rocketleague.tracker.network/rocket-league/profile/epic/ehzgodd/overview",
+      "status": 200,
+      "seconds": 12.15,
+      "max_rss_mib": 63.3,
+      "bytes": 171928,
+      "playlist_rows": 0,
+      "title": "ehzgodd's Rocket League Stats - Rocket League Tracker",
+      "error": null,
+      "usable_stats": false,
+      "browser_environment": "Chromium 146 (deployed image)",
+      "configuration": "library defaults except local executable"
+    },
+    {
+      "engine": "scrapling-stealth",
+      "url": "https://rocketleague.tracker.network/rocket-league/profile/epic/ehzgodd/overview",
+      "status": 200,
+      "seconds": 12.09,
+      "max_rss_mib": 63.7,
+      "bytes": 172711,
+      "playlist_rows": 0,
+      "title": "ehzgodd's Rocket League Stats - Rocket League Tracker",
+      "error": null,
+      "usable_stats": false,
+      "browser_environment": "Chromium 146 (deployed image)",
+      "configuration": "legacy user agent, Google referrer disabled"
+    }
+  ]
+}

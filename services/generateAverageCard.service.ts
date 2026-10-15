@@ -33,25 +33,38 @@ interface AverageCardData {
   averageStats: AverageStats[];
 }
 
-export default async function generateAverageCard(data: AverageCardData): Promise<any> {
-  const corePlaylists = ["Ranked Doubles 2v2", "Ranked Standard 3v3", "Ranked Duel 1v1", "Tournament Matches"];
+export default async function generateAverageCard(
+  data: AverageCardData,
+): Promise<any> {
+  const corePlaylists = [
+    "Ranked Doubles 2v2",
+    "Ranked Standard 3v3",
+    "Ranked Duel 1v1",
+    "Tournament Matches",
+  ];
   const allPlaylistsSet = new Set<string>();
-  data.seasonData.forEach(s => Object.keys(s.playlists).forEach(p => allPlaylistsSet.add(p)));
+  data.seasonData.forEach((s) =>
+    Object.keys(s.playlists).forEach((p) => allPlaylistsSet.add(p)),
+  );
   const fetchedPlaylists = Array.from(allPlaylistsSet);
 
   const displayPlaylists = [
-    ...corePlaylists.filter(p => fetchedPlaylists.includes(p)),
-    ...fetchedPlaylists.filter(p => !corePlaylists.includes(p)).sort()
+    ...corePlaylists.filter((p) => fetchedPlaylists.includes(p)),
+    ...fetchedPlaylists.filter((p) => !corePlaylists.includes(p)).sort(),
   ];
 
   const colPlaylistWidth = 160;
   const colSeasonWidth = 120;
   const colTotalWidth = 120;
-  const requiredWidth = 40 + colSeasonWidth + colTotalWidth + (displayPlaylists.length * colPlaylistWidth);
+  const requiredWidth =
+    40 +
+    colSeasonWidth +
+    colTotalWidth +
+    displayPlaylists.length * colPlaylistWidth;
   const width = Math.max(1000, requiredWidth);
 
   // Dynamic height mapping: Base headers (340px) + (Rows * 32px) + Footer (120px)
-  const reqHeight = 340 + (data.seasonData.length * 32) + 120;
+  const reqHeight = 340 + data.seasonData.length * 32 + 120;
   const height = Math.max(800, reqHeight);
 
   const canvas = Canvas.createCanvas(width, height);
@@ -74,16 +87,28 @@ export default async function generateAverageCard(data: AverageCardData): Promis
 
   ctx.fillStyle = "#fff";
   ctx.font = "bold 22px Arial";
-  ctx.fillText(`Average Stats (Last ${data.seasonData.length} Seasons)`, 40, 135);
+  ctx.fillText(
+    `Average Stats (Last ${data.seasonData.length} Seasons)`,
+    40,
+    135,
+  );
 
   // Show key averages
-  const keyPlaylists = ["Ranked Doubles 2v2", "Ranked Standard 3v3", "Ranked Duel 1v1"];
+  const keyPlaylists = [
+    "Ranked Doubles 2v2",
+    "Ranked Standard 3v3",
+    "Ranked Duel 1v1",
+  ];
   let avgX = 40;
 
   for (const playlistName of keyPlaylists) {
-    const stat = data.averageStats.find(s => s.playlist === playlistName);
+    const stat = data.averageStats.find((s) => s.playlist === playlistName);
     if (stat) {
-      const shortName = playlistName.replace("Ranked ", "").replace(" 3v3", "").replace(" 2v2", "").replace(" 1v1", "");
+      const shortName = playlistName
+        .replace("Ranked ", "")
+        .replace(" 3v3", "")
+        .replace(" 2v2", "")
+        .replace(" 1v1", "");
 
       ctx.font = "bold 16px Arial";
       ctx.fillStyle = "#888";
@@ -95,7 +120,11 @@ export default async function generateAverageCard(data: AverageCardData): Promis
 
       ctx.font = "18px Arial";
       ctx.fillStyle = "#2ecc71";
-      ctx.fillText(`${stat.averageMatches} avg matches`, avgX, 230);
+      ctx.fillText(
+        `${stat.averageMatches ?? "Unavailable"} avg matches`,
+        avgX,
+        230,
+      );
 
       avgX += 310;
     }
@@ -108,8 +137,18 @@ export default async function generateAverageCard(data: AverageCardData): Promis
 
   // Table header
   const tableY = 340;
-  const headers = ["Season", ...displayPlaylists.map(p => p.replace("Ranked ", "").replace(" Matches", "")), "Total"];
-  const colWidths = [colSeasonWidth, ...displayPlaylists.map(() => colPlaylistWidth), colTotalWidth];
+  const headers = [
+    "Season",
+    ...displayPlaylists.map((p) =>
+      p.replace("Ranked ", "").replace(" Matches", ""),
+    ),
+    "Total",
+  ];
+  const colWidths = [
+    colSeasonWidth,
+    ...displayPlaylists.map(() => colPlaylistWidth),
+    colTotalWidth,
+  ];
 
   ctx.fillStyle = "#3a3a40";
   ctx.fillRect(20, tableY, width - 40, 35);
@@ -143,10 +182,10 @@ export default async function generateAverageCard(data: AverageCardData): Promis
 
     // Playlist matches
     displayPlaylists.forEach((playlist, j) => {
-      const matches = season.playlists[playlist]?.matches || 0;
+      const matches = season.playlists[playlist]?.matches ?? null;
       const rank = season.playlists[playlist]?.rank || "";
 
-      if (matches > 0) {
+      if (matches !== null) {
         ctx.fillStyle = rankColors[rank] || "#2ecc71";
         ctx.fillText(matches.toLocaleString(), cellX, rowY + 21);
       } else {
@@ -159,22 +198,43 @@ export default async function generateAverageCard(data: AverageCardData): Promis
     // Total
     ctx.fillStyle = "#2ecc71";
     ctx.font = "bold 14px Arial";
-    ctx.fillText(season.totalMatches?.toLocaleString() || "0", cellX, rowY + 21);
+    ctx.fillText(
+      season.totalMatches?.toLocaleString() ?? "Unavailable",
+      cellX,
+      rowY + 21,
+    );
 
     rowY += rowHeight;
   }
 
   // Total matches across all seasons
-  const grandTotal = data.seasonData.reduce((sum: number, s: any) => sum + (s.totalMatches || 0), 0);
-  const avgPerSeason = Math.round(grandTotal / data.seasonData.length);
+  const grandTotal = data.seasonData.reduce(
+    (sum: number, s: any) => sum + (s.totalMatches || 0),
+    0,
+  );
+  const completeSeasons = data.seasonData.filter((s) => s.totalMatches != null);
+  const avgPerSeason = completeSeasons.length
+    ? Math.round(
+        completeSeasons.reduce((sum, s) => sum + (s.totalMatches || 0), 0) /
+          completeSeasons.length,
+      )
+    : null;
 
   ctx.fillStyle = "#3a3a40";
   ctx.fillRect(20, rowY + 10, width - 40, 50);
 
   ctx.fillStyle = "#fff";
   ctx.font = "bold 18px Arial";
-  ctx.fillText(`Grand Total: ${grandTotal.toLocaleString()} matches`, 40, rowY + 43);
-  ctx.fillText(`Average: ${avgPerSeason.toLocaleString()} per season`, 500, rowY + 43);
+  ctx.fillText(
+    `Known total: ${grandTotal.toLocaleString()} matches`,
+    40,
+    rowY + 43,
+  );
+  ctx.fillText(
+    `Average: ${avgPerSeason?.toLocaleString() ?? "unavailable"} per complete season`,
+    500,
+    rowY + 43,
+  );
 
   // Save the image
   const attachment = new AttachmentBuilder(canvas.toBuffer("image/png"), {

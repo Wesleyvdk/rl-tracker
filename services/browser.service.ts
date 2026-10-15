@@ -1,29 +1,32 @@
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
-import { getRandomProxy } from "./proxy.service";
 
 puppeteer.use(StealthPlugin());
 
+const activeBrowsers = new Set<any>();
+let stopping = false;
+export async function shutdownBrowsers() {
+  stopping = true;
+  await Promise.allSettled(
+    [...activeBrowsers].map((browser) => browser.close()),
+  );
+}
+
 export async function launchBrowser() {
-    const proxy = await getRandomProxy();
-    const args = [
-        "--disable-blink-features=AutomationControlled",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-    ];
+  if (stopping) throw new Error("Browser service is shutting down");
+  const args = [
+    "--disable-blink-features=AutomationControlled",
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+  ];
 
-    /*
-    if (proxy) {
-        console.log(`[PROXY] Launching transient Puppeteer with proxy: ${proxy}`);
-        args.push(`--proxy-server=${proxy}`);
-    }
-    */
+  const browser = await puppeteer.launch({
+    headless: true,
+    protocolTimeout: 30000,
+    args,
+  });
 
-    const browser = await puppeteer.launch({
-        headless: "new" as any,
-        protocolTimeout: 600000,
-        args,
-    });
-
-    return browser;
+  activeBrowsers.add(browser);
+  browser.once("disconnected", () => activeBrowsers.delete(browser));
+  return browser;
 }
