@@ -87,24 +87,30 @@ export interface ParsedRanks {
 
 export interface SeasonData {
   season: string;
-  totalMatches?: number; // Total matches played in this season (sum of all playlists)
+  totalMatches?: number | null; // Total matches played in this season (sum of all playlists)
   playlists: {
     [key: string]: {
       rank: string;
-      matches: number;
+      matches: number | null;
     };
   };
 }
 
 export interface AverageStats {
   playlist: string;
-  averageMatches: number;
+  averageMatches: number | null;
   averageRankTier: number; // Numeric representation of rank
   averageRankName: string; // Approximate rank name
 }
 
 export interface SeasonStatsResult {
+  fetchedAt?: number;
+  stale?: boolean;
   seasonData: SeasonData[];
   averageStats: AverageStats[];
-  failureReason?: "invalid_profile_input" | "cloudflare_blocked" | "profile_not_found" | "table_unavailable";
+  failureReason?:
+    | "invalid_profile_input"
+    | "cloudflare_blocked"
+    | "profile_not_found"
+    | "table_unavailable";
 }

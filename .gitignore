@@ -9,4 +9,11 @@ debug-*.log
 
 .agents
 .claude
-bun.lock
+data/
+backups/
+benchmark/results/
+*.sqlite-shm
+*.sqlite-wal
+
+__pycache__/
+*.pyc

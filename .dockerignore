@@ -6,4 +6,8 @@ database.sqlite
 debug-*.log
 agent-transcripts
 terminals
-*.md
+
+benchmark
+tests
+backups
+*.sqlite*

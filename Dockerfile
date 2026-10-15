@@ -1,9 +1,10 @@
-FROM oven/bun:1.3.8
+ARG BASE_IMAGE=oven/bun:1.3.8
+FROM ${BASE_IMAGE}
 
 WORKDIR /app
 
 # Install Chromium + runtime libraries required by Puppeteer.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN if ! command -v chromium >/dev/null; then apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     ca-certificates \
     fonts-liberation \
@@ -39,15 +40,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxss1 \
     libxtst6 \
     xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*; fi
 
 ENV NODE_ENV=production
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
-COPY package.json package-lock.json* bun.lock* ./
-RUN bun install
+RUN find /app -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 
 COPY . .
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s CMD ["bun", "run", "scripts/health.ts"]
 CMD ["bun", "run", "start"]
