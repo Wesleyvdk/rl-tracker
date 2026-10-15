@@ -59,7 +59,7 @@ docker compose exec bot bun run scripts/backup.ts
 docker cp rl-tracker-bot:/app/backups/. ./backups/
 ```
 
-Backups use SQLite `VACUUM INTO` and run `PRAGMA integrity_check`. Copy them out of the container promptly, since `/app/backups` is not the database volume. Schedule the backup-and-copy commands with the VPS scheduler for regular backups. Store `.env` separately with restricted permissions.
+Backups use SQLite `VACUUM INTO` and run `PRAGMA integrity_check`. Copy them out of the container promptly, since `/app/backups` is not the database volume. On this VPS, `scripts/backup-vps.sh` performs the backup, copies it to this checkout’s restricted `backups/` directory, and retains daily backups for 14 days. It is scheduled at 03:15 server time in the user crontab, independently of all other projects. The pre-upgrade backup is retained separately and is not removed by that retention rule. Store `.env` separately with restricted permissions.
 
 Before replacing a running container, retain its image tag and create a backup. Stop the bot before restoring into an empty database volume. Restore `database.sqlite` with permissions readable/writable by the container user, run an integrity check, and start exactly one instance. Existing cache tables are additive; no user data is dropped by migration.
 
