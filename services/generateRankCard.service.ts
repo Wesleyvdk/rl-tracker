@@ -40,7 +40,7 @@ const icons = new Map<
   Promise<Awaited<ReturnType<typeof Canvas.loadImage>> | null>
 >();
 export function rankCardHeight(count: number) {
-  return TOP + Math.ceil(Math.max(7, count) / 2) * (TILE + GAP) + 100;
+  return TOP + Math.ceil(Math.max(7, count) / 2) * (TILE + GAP) + 60;
 }
 function rounded(
   ctx: SKRSContext2D,
@@ -178,11 +178,7 @@ export default async function generateRankCard(
   text(ctx, "RL / TRACKER", 1025, 48, 23, WHITE, 223, true);
   pill(
     ctx,
-    model.at
-      ? model.stale
-        ? "CACHED SNAPSHOT"
-        : "RECENT SNAPSHOT"
-      : "TIME UNAVAILABLE",
+    model.at ? (model.stale ? "CACHED" : "UPDATED") : "TIME UNAVAILABLE",
     1025,
     69,
     model.stale || !model.at ? "#f3cb72" : "#79e2c2",
@@ -199,7 +195,10 @@ export default async function generateRankCard(
   );
   const w = (WIDTH - PAD * 2 - GAP) / 2;
   for (const [i, m] of model.modes.entries()) {
-    const x = PAD + (i % 2) * (w + GAP),
+    const x =
+        model.modes.length % 2 && i === model.modes.length - 1
+          ? (WIDTH - w) / 2
+          : PAD + (i % 2) * (w + GAP),
       y = TOP + Math.floor(i / 2) * (TILE + GAP);
     ctx.save();
     rounded(ctx, x, y, w, TILE, 18);
@@ -275,7 +274,7 @@ export default async function generateRankCard(
       233,
       true,
     );
-    text(ctx, "MATCHMAKING RATING", x + 25, y + 190, 13, MUTED, 225, true);
+    text(ctx, "MMR", x + 25, y + 190, 13, MUTED, 225, true);
     const plotX = x + 275,
       plotY = y + 121,
       plotW = w - 303,
@@ -285,7 +284,7 @@ export default async function generateRankCard(
       const delta = history.delta!;
       text(
         ctx,
-        `${delta > 0 ? "+" : ""}${delta} OBSERVED`,
+        `${delta > 0 ? "+" : ""}${delta} MMR`,
         plotX,
         y + 108,
         19,
@@ -294,7 +293,15 @@ export default async function generateRankCard(
         true,
       );
     } else
-      text(ctx, "HISTORY BUILDING", plotX, y + 108, 16, MUTED, plotW, true);
+      text(
+        ctx,
+        history.values.length ? "Trend pending" : "No history yet",
+        plotX,
+        y + 108,
+        16,
+        MUTED,
+        plotW,
+      );
     ctx.strokeStyle = "#ffffff0c";
     ctx.lineWidth = 1;
     for (let line = 0; line < 3; line++) {
@@ -326,18 +333,6 @@ export default async function generateRankCard(
       text(
         ctx,
         `RANGE ${history.min}–${history.max} · PEAK ${history.peak}`,
-        plotX,
-        y + 198,
-        13,
-        MUTED,
-        plotW,
-      );
-    else
-      text(
-        ctx,
-        history.values.length
-          ? "FIRST OBSERVATION SAVED"
-          : "WAITING FOR OBSERVATIONS",
         plotX,
         y + 198,
         13,
@@ -398,112 +393,28 @@ export default async function generateRankCard(
     rounded(ctx, x + 0.5, y + 0.5, w - 1, TILE - 1, 18);
     ctx.stroke();
   }
-  if (model.modes.length % 2) {
-    const x = PAD + w + GAP,
-      y = TOP + Math.floor(model.modes.length / 2) * (TILE + GAP);
-    text(ctx, "READING YOUR TRENDS", x + 25, y + 44, 18, WHITE, w - 50, true);
+  const footer = height - 38;
+  ctx.fillStyle = "#ffffff12";
+  ctx.fillRect(PAD, footer - 24, WIDTH - PAD * 2, 1);
+  const times = [
+    ...new Set(model.modes.flatMap((m) => m.history.points.map((p) => p.at))),
+  ];
+  if (times.length >= 2)
     text(
       ctx,
-      "Real observations. Your progress over time.",
-      x + 25,
-      y + 83,
-      19,
-      MUTED,
-      w - 50,
-    );
-    text(
-      ctx,
-      "Each chart uses its own MMR scale.",
-      x + 25,
-      y + 121,
-      17,
-      MUTED,
-      w - 50,
-    );
-    text(
-      ctx,
-      "Points are snapshots, not individual matches.",
-      x + 25,
-      y + 152,
-      17,
-      MUTED,
-      w - 50,
-    );
-    text(
-      ctx,
-      "Gaps mean missing observations or a long break.",
-      x + 25,
-      y + 183,
-      17,
-      MUTED,
-      w - 50,
-    );
-    const times = model.modes.flatMap((m) => m.history.points.map((p) => p.at));
-    text(
-      ctx,
-      times.length
-        ? `${shortDate(Math.min(...times))} → ${shortDate(Math.max(...times))} UTC`
-        : "History starts with new successful lookups.",
-      x + 25,
-      y + 228,
-      15,
-      "#b9c9ef",
-      w - 50,
-      true,
-    );
-    text(
-      ctx,
-      "Up to 30 days of recent observations",
-      x + 25,
-      y + 255,
+      `${shortDate(Math.min(...times))} → ${shortDate(Math.max(...times))} UTC`,
+      PAD,
+      footer + 6,
       14,
       MUTED,
-      w - 50,
+      740,
     );
-  }
-  const footer = height - 70;
-  ctx.fillStyle = "#ffffff12";
-  ctx.fillRect(PAD, footer - 25, WIDTH - PAD * 2, 1);
   text(
     ctx,
-    input.preview
-      ? "DESIGN PREVIEW · NOT REAL PLAYER HISTORY"
-      : "MMR SAMPLES · EACH CHART HAS ITS OWN SCALE · OBSERVED PEAKS",
-    PAD,
-    footer + 6,
-    14,
-    input.preview ? "#f3cb72" : MUTED,
-    740,
-  );
-  text(
-    ctx,
-    model.at ? `DATA AS OF ${date(model.at)}` : "OBSERVATION TIME UNAVAILABLE",
+    model.at ? `UPDATED ${date(model.at)}` : "UPDATE TIME UNAVAILABLE",
     820,
     footer + 6,
     14,
-    MUTED,
-    WIDTH - 852,
-  );
-  text(
-    ctx,
-    "SNAPSHOTS, NOT INDIVIDUAL MATCHES · GAPS SHOW MISSING DATA OR LONG BREAKS",
-    PAD,
-    footer + 33,
-    13,
-    MUTED,
-    740,
-  );
-  const observedTimes = model.modes.flatMap((m) =>
-    m.history.points.map((p) => p.at),
-  );
-  text(
-    ctx,
-    observedTimes.length
-      ? `${shortDate(Math.min(...observedTimes))} → ${shortDate(Math.max(...observedTimes))} UTC`
-      : "HISTORY BUILDING · UP TO 30 DAYS",
-    820,
-    footer + 33,
-    13,
     MUTED,
     WIDTH - 852,
   );
