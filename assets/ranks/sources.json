@@ -1,0 +1,117 @@
+[
+  {
+    "tier": 0,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-0.png",
+    "sha256": "aa1993073895d9ef7644131c439a1e9200fec8df601bc20198d7e9831cfb7d92"
+  },
+  {
+    "tier": 1,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-1.png",
+    "sha256": "4067f44f8abb8a6f9a8a5f21691911e2078ceb079a8ed5071b4c46fab1843df1"
+  },
+  {
+    "tier": 2,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-2.png",
+    "sha256": "5db141cffb817d1872c4835f90434dfb66fb52b4f976a7bc69833fcbea75a80a"
+  },
+  {
+    "tier": 3,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-3.png",
+    "sha256": "3d8dfe3251593c46946ff7ebbad0b74a5c78de416c6291ac300ca3b0bc023781"
+  },
+  {
+    "tier": 4,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-4.png",
+    "sha256": "adb63d65bedab739bb3e8020e23bbd86bd39726d01363aafae6b6ce960056970"
+  },
+  {
+    "tier": 5,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-5.png",
+    "sha256": "09159f957d40f18ec5d1fb2779d4e1c1b8b36ca04c82341045c9ef43b2a1db16"
+  },
+  {
+    "tier": 6,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-6.png",
+    "sha256": "89e6605b74c59fa0c54b8bde50696d42e6cf007f4649e7248537a20c48d720b3"
+  },
+  {
+    "tier": 7,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-7.png",
+    "sha256": "3e793d790bc4bce524f8eb5c9b83289c2893ab90a8d2554ecf3fe20f25c91cc3"
+  },
+  {
+    "tier": 8,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-8.png",
+    "sha256": "1ed6c78a4aff68c8e6a6fe604ab1eb00f44015487e5c01809ff3f7e652bf967c"
+  },
+  {
+    "tier": 9,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-9.png",
+    "sha256": "2e39af318ade1b1af48ccf6e6b2e02eed08ef7e2d8e5f3f354c218deafc0c962"
+  },
+  {
+    "tier": 10,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-10.png",
+    "sha256": "1ab039d15e9b8f9f5662eebaf8191736547c872ea9cc511a4355ce94762c9ad8"
+  },
+  {
+    "tier": 11,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-11.png",
+    "sha256": "d00e8092ab543e55f73ca8bf19d9a28ad1b1ab042a6e73377c4f037d257456be"
+  },
+  {
+    "tier": 12,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-12.png",
+    "sha256": "a30b936aee02dcc940009d9677b7b99f28776d01bacba8cd9379fa259450a333"
+  },
+  {
+    "tier": 13,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-13.png",
+    "sha256": "9622b2e1bea65b90dd6d0b46c0b50cffc1e9567a0bbb4371afde23aa73b76837"
+  },
+  {
+    "tier": 14,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-14.png",
+    "sha256": "7644157059b84812b3447654c1514db09e2bf22f07251912cbd026950f2c35ff"
+  },
+  {
+    "tier": 15,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-15.png",
+    "sha256": "85922128b9a81a47eb64e64bde861a9f66a18b4d8dfbe63715a5333c760363a5"
+  },
+  {
+    "tier": 16,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-16.png",
+    "sha256": "bdccbe15e671f46458428d31594dc765d14cf37de46515185b245e79f15a4b59"
+  },
+  {
+    "tier": 17,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-17.png",
+    "sha256": "eb01cea58c7a4a05face0b430847cd543849e00ff8e3a72062fa7d679d482485"
+  },
+  {
+    "tier": 18,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s4-18.png",
+    "sha256": "ec1aaff80e95d4c0553423863c1c83b19ac2f44d99860e01dd28224634827972"
+  },
+  {
+    "tier": 19,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s15rank19.png",
+    "sha256": "5e77645f012224dd2ef7d7da82097848ef3f4f06743089f7ada5b7b38545d0d6"
+  },
+  {
+    "tier": 20,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s15rank20.png",
+    "sha256": "eb8cd4423b5306918347977851b9b2cc5943367562ef8cdabe3432c81b43bf6e"
+  },
+  {
+    "tier": 21,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s15rank21.png",
+    "sha256": "7446719ce5bf6c5a0dedabc048a94913782c0a661e189652674fe6cbaf5a1534"
+  },
+  {
+    "tier": 22,
+    "source": "https://trackercdn.com/cdn/tracker.gg/rocket-league/ranks/s15rank22.png",
+    "sha256": "88e2a9b438f56ce4b0d4f517b0eba677e555f690089f3ce694ca15c210e95dbe"
+  }
+]
