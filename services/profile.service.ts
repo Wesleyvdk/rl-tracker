@@ -39,6 +39,7 @@ export async function refreshLinkedProfiles() {
         account.discord_id,
         JSON.stringify(result.tableData),
         account,
+        result.fetchedAt,
       );
   }
 }

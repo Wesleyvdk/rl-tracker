@@ -1,0 +1,32 @@
+[
+  {
+    "file": "InterVariable.ttf",
+    "source": "https://raw.githubusercontent.com/rsms/inter/master/docs/font-files/InterVariable.ttf",
+    "sha256": "4989b125924991b90d05b2d16e0e388c48f7d5bb8b30539bbf9c755278d0ccaf"
+  },
+  {
+    "file": "OFL.txt",
+    "source": "https://raw.githubusercontent.com/rsms/inter/master/LICENSE.txt",
+    "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
+  },
+  {
+    "file": "NotoSansCJKjp-Regular.otf",
+    "source": "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf",
+    "sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5"
+  },
+  {
+    "file": "Noto-CJK-OFL.txt",
+    "source": "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/LICENSE",
+    "sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2"
+  },
+  {
+    "file": "NotoEmoji.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf",
+    "sha256": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551"
+  },
+  {
+    "file": "Noto-Emoji-OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notoemoji/OFL.txt",
+    "sha256": "500bb1ccf43df7bbb522112f9133a52b16e1c35e809632f5d8609b179152de5b"
+  }
+]

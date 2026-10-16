@@ -1,9 +1,12 @@
 import type { Database } from "bun:sqlite";
 import type { ProfileResult } from "./profileParser.service";
 import { RequestQueue, requestQueue } from "./requestQueue.service";
+import { MmrHistoryStore } from "./mmrHistory.service";
+import { normalizePlatform } from "./trackerProfile.service";
 
 export class ProfileCache {
   private failures = new Map<string, number>();
+  readonly history: MmrHistoryStore;
   constructor(
     private db: Database,
     private fetcher: (name: string, platform: string) => Promise<ProfileResult>,
@@ -14,9 +17,10 @@ export class ProfileCache {
       profile_key TEXT PRIMARY KEY, result_json TEXT NOT NULL, fetched_at INTEGER NOT NULL,
       last_error TEXT, last_attempt INTEGER
     )`);
+    this.history = new MmrHistoryStore(db);
   }
   key(name: string, platform: string) {
-    return `${platform}:${name.trim()}`;
+    return `${normalizePlatform(platform) || platform}:${name.trim()}`;
   }
   read(name: string, platform: string): ProfileResult | undefined {
     const row = this.db
@@ -88,11 +92,14 @@ export class ProfileCache {
         }
         if (result.tableData?.length && !result.error) {
           result = { ...result, fetchedAt: Date.now(), stale: false };
-          this.db
-            .query(
-              "INSERT INTO profile_cache(profile_key,result_json,fetched_at,last_attempt) VALUES (?,?,?,?) ON CONFLICT(profile_key) DO UPDATE SET result_json=excluded.result_json,fetched_at=excluded.fetched_at,last_error=NULL,last_attempt=excluded.last_attempt",
-            )
-            .run(key, JSON.stringify(result), result.fetchedAt!, Date.now());
+          this.db.transaction(() => {
+            this.db
+              .query(
+                "INSERT INTO profile_cache(profile_key,result_json,fetched_at,last_attempt) VALUES (?,?,?,?) ON CONFLICT(profile_key) DO UPDATE SET result_json=excluded.result_json,fetched_at=excluded.fetched_at,last_error=NULL,last_attempt=excluded.last_attempt",
+              )
+              .run(key, JSON.stringify(result), result.fetchedAt!, Date.now());
+            this.history.record(key, result.tableData!, result.fetchedAt!);
+          })();
           this.failures.delete(key);
         } else {
           this.failures.set(key, Date.now() + 300000);

@@ -98,7 +98,7 @@ export function updateStats(
       "UPDATE users SET stats_json=?,last_updated=? WHERE discord_id=? AND playername=? AND platform=?",
     ).run(
       statsJson,
-      Date.now(),
+      fetchedAt,
       discordId,
       expected.playername,
       expected.platform,

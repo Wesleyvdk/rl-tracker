@@ -30,6 +30,18 @@ For direct host execution, install Chromium and set `PUPPETEER_EXECUTABLE_PATH` 
 - `/leaderboard` uses cached snapshots of linked users in the current server and starts missing/stale refreshes in the background. It does not wait for every profile to scrape.
 - `/avgmatches` uses cached season history. Missing match counts remain unavailable; they are excluded from averages instead of treated as zero. Zero matches remains a valid observation.
 
+### Rank card appearance and history
+
+`/rank` renders all seven standard modes on one image, with extra named modes retained when reported. Rank-colored panels, bundled rank icons and Inter typography, large MMR figures, streak badges and source-provided division distances keep the main information readable. An amber cached badge and an observation timestamp travel with the image. Rendering uses local assets and makes no network requests.
+
+Each panel includes a subtle background curve and a readable graph of **locally observed MMR snapshots**. The change and peak refer to the displayed observations; they are not last-match changes or lifetime/season records. Graphs use independent scales with visible observed ranges. Points use real observation timestamps; missing MMR/modes and breaks longer than six hours interrupt the line. A single point is shown as a dot, and no history shows a waiting state.
+
+History starts with new successful fetches after this update. Existing latest snapshots are not turned into invented past history. Cached reads and failed refreshes add no observations. Cache and history writes are atomic; a missing mode remains a gap. Graphs select at most 256 observations from the preceding 30 days, ending at the displayed snapshot, so a background refresh cannot add later timestamps to an older card. Storage retains at most 1,024 snapshots per profile and removes observations older than 90 days as new snapshots arrive. History follows the platform/profile identity, preserving username case, independently of Discord links.
+
+Preview the design locally with `bun run scripts/previewRankCard.ts`. This writes an image under `benchmark/results/rank-card-style/` with an explicit synthetic-history watermark; demo points are never inserted into the bot's database. To render a real cached snapshot, pass `--input path/to/local-input.json --out path/to/card.png`.
+
+Further styling ideas: selectable dark/light/team-color themes; a compact mobile layout; an opt-in goal marker for each mode; comparison cards for two players; and weekly progress posters built from actual stored observations. Automated Discord posting would be a separate opt-in feature.
+
 All retrieval goes through one priority queue. Concurrent requests for the same profile share one job. Interactive requests take priority over background jobs. Current-profile failures enter a five-minute cooldown and preserve the last good snapshot. Profile/history freshness is one hour. Rank retrieval is bounded to 45 seconds after browser launch; season retrieval is bounded to 120 seconds. Cached results reflect retrieval time, not a guarantee that Tracker's upstream data is current.
 
 The `users` table and existing links are preserved. Startup adds `profile_cache` and `season_cache`; successful legacy snapshots seed the profile cache. Relinking during a refresh cannot apply the previous account's new snapshot to the changed link.

@@ -9,6 +9,7 @@ import generateRankCard from "../../services/generateRankCard.service";
 import { profileCache } from "../../services/profile.service";
 import { getAccount, updateStats } from "../../services/database.service";
 import { normalizePlatform } from "../../services/trackerProfile.service";
+import { STANDARD_MODES } from "../../services/rankCardModel.service";
 export const data = new SlashCommandBuilder()
   .setName("rank")
   .setDescription("Replies with your rank!")
@@ -85,6 +86,14 @@ export async function execute(
       name: playername,
       ranks: ranks.tableData,
       rewardLevel: ranks.parsedRewardLevel,
+      platform,
+      fetchedAt: ranks.fetchedAt,
+      stale: ranks.stale,
+      history: profileCache.history.read(
+        profileCache.key(playername, platform),
+        [...STANDARD_MODES, ...ranks.tableData.map((row) => row.playlist)],
+        ranks.fetchedAt || 0,
+      ),
     };
 
     const image = await generateRankCard(playerData);
