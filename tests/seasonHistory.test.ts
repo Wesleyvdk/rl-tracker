@@ -329,6 +329,73 @@ test("bounded operation closes its old document before a timed-out result can be
   ).rejects.toThrow("deadline");
   expect(closed).toBe(true);
 });
+test("without a reload, matching GET permits only unknown empty data, never stale counts or zero", async () => {
+  const fake = (body: string, initial = 38) => {
+    let selected = initial,
+      closed = false;
+    const response = {
+      url: () =>
+        "https://api.tracker.gg/api/v2/rocket-league/standard/profile/epic/P/segments/playlist?season=37",
+      request: () => ({ method: () => "GET" }),
+      status: () => 200,
+      headers: () => ({ "content-type": "application/json" }),
+      buffer: async () => Buffer.from("{}"),
+    };
+    return {
+      url: () =>
+        "https://rocketleague.tracker.network/rocket-league/profile/epic/P/overview",
+      content: async () => {
+        if (closed) throw new Error("closed");
+        return `<div class="multi-switch__item--selected">${options.find((o) => o.id === selected)!.label}</div>${body}`;
+      },
+      waitForResponse: async (predicate: any) => {
+        expect(predicate(response)).toBe(true);
+        return response;
+      },
+      evaluate: async (_fn: any, ...args: any[]) => {
+        if (closed) throw new Error("closed");
+        if (args.length) {
+          selected = 37;
+          return true;
+        }
+        return false;
+      },
+      close: async () => {
+        closed = true;
+      },
+    };
+  };
+  const empty = '<table class="trn-table"><tbody></tbody></table>';
+  const page = fake(empty);
+  const result = await boundedPage(
+    page,
+    () => readBrowserSeason(page, options[1], "epic", "P", true),
+    500,
+  );
+  expect(result.unavailable).toBe(true);
+  expect(result.totalMatches).toBeNull();
+  for (const body of [
+    table("25"),
+    '<table class="trn-table"><tbody><tr><td>No matches played this season</td></tr></tbody></table>',
+  ]) {
+    const stale = fake(body);
+    await expect(
+      boundedPage(
+        stale,
+        () => readBrowserSeason(stale, options[1], "epic", "P", true),
+        100,
+      ),
+    ).rejects.toThrow("deadline");
+  }
+  const initial = fake(empty, 37);
+  await expect(
+    boundedPage(
+      initial,
+      () => readBrowserSeason(initial, options[1], "epic", "P", true),
+      100,
+    ),
+  ).rejects.toThrow("deadline");
+});
 test("reader checks first selected season rather than assuming menu index zero", async () => {
   const page = {
     url: () =>

@@ -166,9 +166,16 @@ export async function readBrowserSeason(
         await page.content(),
         option,
         competitive,
-        transitioned && initial.selectedId !== option.id,
+        initial.selectedId !== option.id,
       );
-      if (transitioned && result) return result;
+      // A completed request may leave an already empty table unchanged. That
+      // establishes unknown data only; every numeric result still needs a reload.
+      if (
+        result &&
+        (transitioned ||
+          (initial.selectedId !== option.id && result.unavailable === true))
+      )
+        return result;
       await new Promise((r) => setTimeout(r, 100));
     }
     throw new Error("Season table or identity unavailable");

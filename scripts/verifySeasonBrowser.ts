@@ -14,6 +14,7 @@ const options = [
   { id: 14, label: "Season 14" },
   { id: 13, label: "Season 13" },
   { id: 12, label: "Season 12" },
+  { id: 11, label: "Season 11" },
 ];
 const row = (n: number) =>
   `<tr><td class="name"><div class="playlist">Ranked Doubles 2v2</div></td><td class="matches"><div class="value">${n}</div></td></tr>`;
@@ -24,13 +25,12 @@ const html = `<!doctype html><div id="selected" class="multi-switch__item--selec
 document.querySelectorAll('li').forEach(li=>li.onclick=async()=>{
  const id=Number(li.dataset.id);
  document.querySelector('#selected').textContent=li.textContent;
- const loading=document.createElement('div');loading.className='loading-indicator';document.body.append(loading);
- document.querySelector('tbody').innerHTML='';
+ const loading=id===11?null:document.createElement('div');if(loading){loading.className='loading-indicator';document.body.append(loading);document.querySelector('tbody').innerHTML='';}
  const response=await fetch('https://api.tracker.gg/api/v2/rocket-league/standard/profile/epic/Fixture/segments/playlist?season='+id,{headers:{'X-Fixture':'test'}});
  await response.json();
  // The response is complete before the DOM commits. No fixed frame count is enough.
  await new Promise(r=>setTimeout(r,id===37?5000:850));
- document.querySelector('tbody').innerHTML=id<=13?'':${JSON.stringify(row(50))};loading.remove();
+ document.querySelector('tbody').innerHTML=id<=13?'':${JSON.stringify(row(50))};loading?.remove();
 });
 </script>`;
 const browser = await launchBrowser();
