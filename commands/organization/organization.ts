@@ -57,20 +57,15 @@ export const data = new SlashCommandBuilder()
       .addStringOption((o) =>
         o
           .setName("server")
-          .setDescription("Discord server ID")
-          .setRequired(true),
+          .setDescription(
+            "Numeric Discord server ID (defaults to this server)",
+          ),
       ),
   )
   .addSubcommand((s) =>
     s
       .setName("review")
       .setDescription("Approve or revoke organization access (bot owner)")
-      .addStringOption((o) =>
-        o
-          .setName("server")
-          .setDescription("Discord server ID")
-          .setRequired(true),
-      )
       .addStringOption((o) =>
         o
           .setName("decision")
@@ -81,6 +76,13 @@ export const data = new SlashCommandBuilder()
             { name: "Deny", value: "denied" },
             { name: "Revoke", value: "revoked" },
           ),
+      )
+      .addStringOption((o) =>
+        o
+          .setName("server")
+          .setDescription(
+            "Numeric Discord server ID (defaults to this server)",
+          ),
       ),
   );
 export async function execute(
@@ -89,7 +91,6 @@ export async function execute(
 ) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   try {
-    if (!interaction.guildId) throw new Error("Use this command in a server.");
     const action = interaction.options.getSubcommand();
     if (["review", "pending", "inspect"].includes(action)) {
       if (!(await isBotOperator(client, interaction.user.id)))
@@ -109,7 +110,12 @@ export async function execute(
               .join("\n") || "No pending applications.",
           ),
         );
-      const guild = interaction.options.getString("server", true);
+      const target = interaction.options.getString("server");
+      const guild = target === null ? interaction.guildId : target.trim();
+      if (!guild || !/^\d{17,20}$/.test(guild))
+        throw new Error(
+          "Use the server’s numeric Discord ID, or omit server to review this server.",
+        );
       if (action === "inspect") {
         const application = organizations.application(guild) as any;
         if (!application)
@@ -140,6 +146,7 @@ export async function execute(
         ),
       );
     }
+    if (!interaction.guildId) throw new Error("Use this command in a server.");
     const actor = await guildActor(
       client,
       interaction.guildId,

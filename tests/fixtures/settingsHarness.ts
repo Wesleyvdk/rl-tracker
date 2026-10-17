@@ -167,6 +167,68 @@ assert.match(
   /Only the bot/,
 );
 operator = true;
+// Review and inspect default to this interaction's server, independently of guild caches.
+assert.equal((await run(org, "inspect")).title, "Organization application");
+assert.equal(
+  (await run(org, "review", { decision: "approved" })).title,
+  "Organization access updated",
+);
+assert.equal(
+  (
+    await run(org, "review", {
+      server: " " + guild + " ",
+      decision: "approved",
+    })
+  ).title,
+  "Organization access updated",
+);
+for (const target of [
+  "Example",
+  "",
+  "12345",
+  "<#" + guild + ">",
+  "123456789012345678901",
+]) {
+  const bad = await run(org, "review", { server: target, decision: "revoked" });
+  assert.match(bad.description, /numeric Discord ID/);
+  assert.equal(store.approved(guild), true);
+}
+assert.match(
+  (await run(org, "review", { decision: "approved" }, null)).description,
+  /numeric Discord ID/,
+);
+assert.equal(
+  (await run(org, "inspect", { server: guild }, null)).title,
+  "Organization application",
+);
+assert.match(
+  (await run(org, "review", { server: other, decision: "approved" }))
+    .description,
+  /No application/,
+);
+assert.equal(store.approved(guild), true);
+assert.match(
+  (
+    await run(
+      org,
+      "apply",
+      { name: "Other", website: "https://example.org" },
+      null,
+    )
+  ).description,
+  /in a server/,
+);
+operator = false;
+assert.match(
+  (await run(org, "review", { decision: "revoked" })).description,
+  /Only the bot/,
+);
+assert.match(
+  (await run(org, "inspect", { server: guild }, null)).description,
+  /Only the bot/,
+);
+assert.equal(store.approved(guild), true);
+operator = true;
 const inspected = await run(org, "inspect", { server: guild });
 assert.equal(inspected.title, "Organization application");
 assert(
@@ -187,5 +249,16 @@ assert.match((await run(theme, "editor")).description, /Organization access/);
 assert.equal(store.approved(guild), false);
 for (const command of [config, org, theme])
   assert(command.data.toJSON().options!.length <= 25);
+for (const action of ["review", "inspect"]) {
+  const schema: any = org.data
+    .toJSON()
+    .options!.find((o: any) => o.name === action);
+  assert(!schema.options.find((o: any) => o.name === "server").required);
+  let optional = false;
+  for (const option of schema.options) {
+    if (!option.required) optional = true;
+    else assert(!optional);
+  }
+}
 db.close();
 console.log(`${n} settings and organization command scenarios passed`);

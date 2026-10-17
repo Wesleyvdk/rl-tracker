@@ -5,6 +5,10 @@ import {
   type ThemeColors,
 } from "./themeRegistry.service";
 import { contrast } from "./cardTheme.service";
+import {
+  validBackground,
+  type BackgroundDesign,
+} from "./backgroundDesign.service";
 export const EDITOR_COLORS = [
   "background",
   "surface",
@@ -23,11 +27,7 @@ export interface EditorTheme {
   base: "rose" | "slate";
   radius: number;
   colors: ThemeColors;
-  background: {
-    style: "solid" | "gradient" | "aurora" | "contours";
-    end: string;
-    angle: number;
-  };
+  background: BackgroundDesign;
 }
 function keys(value: any, allowed: readonly string[]) {
   return (
@@ -53,7 +53,7 @@ export function defaultEditorTheme(): EditorTheme {
     base: "rose",
     radius: 8,
     colors: { ...t.colors },
-    background: { style: "aurora", end: "#201d2a", angle: 125 },
+    background: { style: "satin", end: "#201d2a", angle: 125, intensity: 70 },
   };
 }
 export function validateEditorTheme(value: unknown): EditorTheme {
@@ -71,12 +71,7 @@ export function validateEditorTheme(value: unknown): EditorTheme {
       (k) =>
         typeof v.colors[k] === "string" && /^#[0-9a-f]{6}$/i.test(v.colors[k]),
     ) ||
-    !keys(v.background, ["style", "end", "angle"]) ||
-    !["solid", "gradient", "aurora", "contours"].includes(v.background.style) ||
-    !/^#[0-9a-f]{6}$/i.test(v.background.end) ||
-    !Number.isInteger(v.background.angle) ||
-    v.background.angle < 0 ||
-    v.background.angle > 360
+    !validBackground(v.background)
   )
     throw new EditorInputError(
       "Use a name, a brand label, valid colors and a supported background.",
