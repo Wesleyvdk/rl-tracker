@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-test("all five handlers execute isolated success/error/cache/pagination scenarios without Discord", async () => {
+test("all six handlers execute isolated success/error/cache/pagination/theme scenarios without Discord", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "rl-command-tests-"));
   try {
     const child = Bun.spawn([process.execPath, "run", fileURLToPath(new URL("./fixtures/commandHarness.ts", import.meta.url))], {
@@ -16,6 +16,6 @@ test("all five handlers execute isolated success/error/cache/pagination scenario
       new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited,
     ]);
     expect({ code, err }).toEqual({ code: 0, err: "" });
-    expect(out).toContain("23 isolated command scenarios passed; no Discord transport");
+    expect(out).toContain("37 isolated command scenarios passed; no Discord transport");
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 });

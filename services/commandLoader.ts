@@ -12,7 +12,11 @@ export async function loadCommands(): Promise<Command[]> {
       const command = await import(path.join(root, folder, file));
       if (!command.data || typeof command.execute !== "function")
         throw new Error(`Invalid command: ${file}`);
-      commands.push({ data: command.data.toJSON(), execute: command.execute });
+      commands.push({
+        data: command.data.toJSON(),
+        execute: command.execute,
+        autocomplete: command.autocomplete,
+      });
     }
   }
   return commands;

@@ -228,8 +228,9 @@ test("all standard modes, unknown extra modes, stale time and missing division d
   expect(m.modes).toHaveLength(8);
   expect(m.available).toBe(1);
   expect(m.stale).toBe(true);
-  expect(m.modes.at(-1)!.mmr).toBe(0);
-  expect(m.modes.at(-1)!.progress).toBeNull();
+  expect(m.modes[3].playlist).toBe("Tournament Matches");
+  expect(m.modes[3].mmr).toBe(0);
+  expect(m.modes[3].progress).toBeNull();
   expect(m.modes[0].mmr).toBeNull();
   expect(makeRankCardModel({ name: "p", ranks: [] }, now).at).toBeNull();
   expect(rankAppearance("Grand Champion II").icon).toBe(20);

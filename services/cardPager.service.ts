@@ -17,6 +17,7 @@ interface View {
   owner: string;
   message: string;
   images: AttachmentBuilder[];
+  theme?: string;
   bytes: number;
   page: number;
   expires: number;
@@ -48,7 +49,7 @@ export class CardPager {
       description: image.description ?? undefined,
     });
     return {
-      ...imageMessage([file]),
+      ...imageMessage([file], view.theme),
       attachments: [],
       components: [
         new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -93,11 +94,12 @@ export class CardPager {
   async send(
     interaction: ChatInputCommandInteraction,
     images: AttachmentBuilder[],
+    theme?: string,
   ) {
     if (!images.length) throw new Error("No cards to display");
     if (images.length === 1)
       return interaction.editReply({
-        ...imageMessage(images),
+        ...imageMessage(images, theme),
         attachments: [],
         components: [],
       });
@@ -113,6 +115,7 @@ export class CardPager {
       owner: interaction.user.id,
       message: "",
       images,
+      theme,
       bytes,
       page: 0,
       expires: this.options.now() + this.options.lifetime,

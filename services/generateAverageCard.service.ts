@@ -6,12 +6,7 @@ import { rankAppearance, nonnegative } from "./rankCardModel.service";
 import {
   WIDTH,
   PAD,
-  WHITE,
-  MUTED,
-  background,
-  heading,
-  panel,
-  text,
+  createCardStyle,
   date,
   icon,
   shortMode,
@@ -25,11 +20,15 @@ export interface AverageCardData {
   preview?: boolean;
   partial?: boolean;
   coverage?: SeasonStatsResult["coverage"];
+  theme?: string;
 }
 export class HistoryCardLimitError extends Error {}
 export default async function generateAverageCards(
   data: AverageCardData,
 ): Promise<AttachmentBuilder[]> {
+  const style = createCardStyle(data.theme),
+    { text, background, panel, heading } = style,
+    { text: WHITE, muted: MUTED, warning, positive } = style.colors;
   const model = averageModel(data.seasonData),
     visibleRows = model.rows.filter((row) => row.known !== null),
     modePages = Math.max(1, Math.ceil(model.modes.length / 4)),
@@ -50,7 +49,7 @@ export default async function generateAverageCards(
         canvas = Canvas.createCanvas(WIDTH, height),
         ctx = canvas.getContext("2d");
       background(ctx, WIDTH, height);
-      heading(
+      await heading(
         ctx,
         data.preview ? "DESIGN PREVIEW · SEASON HISTORY" : "SEASON HISTORY",
         data.name,
@@ -62,7 +61,7 @@ export default async function generateAverageCards(
         PAD + 5,
         125,
         15,
-        data.partial || model.partial ? "#f3cb72" : MUTED,
+        data.partial || model.partial ? warning : MUTED,
         500,
         true,
       );
@@ -72,7 +71,7 @@ export default async function generateAverageCards(
         650,
         125,
         15,
-        "#79e2c2",
+        positive,
         590,
         true,
       );
@@ -81,7 +80,11 @@ export default async function generateAverageCards(
         w = (WIDTH - PAD * 2 - gap * (count - 1)) / count;
       for (const [i, mode] of modes.entries()) {
         const stat = model.averages.find((a) => a.playlist === mode),
-          look = rankAppearance(stat?.averageRankName || ""),
+          originalLook = rankAppearance(stat?.averageRankName || ""),
+          look = {
+            ...originalLook,
+            color: style.rankColor(originalLook.color),
+          },
           x = PAD + i * (w + gap),
           y = 155;
         panel(ctx, x, y, w, 195, look.color);
@@ -129,7 +132,7 @@ export default async function generateAverageCards(
         totalW = 142,
         colW = (WIDTH - PAD * 2 - seasonW - totalW) / Math.max(1, modes.length);
       const tableY = 411;
-      ctx.fillStyle = "#25324b";
+      ctx.fillStyle = style.colors.surfaceAlt;
       ctx.fillRect(PAD, tableY, WIDTH - PAD * 2, 39);
       text(ctx, "SEASON", PAD + 15, tableY + 26, 14, MUTED, seasonW - 25, true);
       modes.forEach((m, i) =>
@@ -156,7 +159,7 @@ export default async function generateAverageCards(
       );
       for (const [i, row] of rows.entries()) {
         const y = tableY + 39 + i * 45;
-        ctx.fillStyle = i % 2 ? "#111b2b" : "#172235";
+        ctx.fillStyle = i % 2 ? style.colors.background : style.colors.surface;
         ctx.fillRect(PAD, y, WIDTH - PAD * 2, 45);
         text(ctx, row.season, PAD + 15, y + 29, 16, WHITE, seasonW - 25, true);
         modes.forEach((m, j) => {
@@ -179,7 +182,7 @@ export default async function generateAverageCards(
           WIDTH - PAD - totalW + 8,
           y + 29,
           18,
-          "#79e2c2",
+          positive,
           totalW - 15,
           true,
         );
@@ -204,7 +207,7 @@ export default async function generateAverageCards(
         820,
         height - 28,
         13,
-        data.stale ? "#f3cb72" : MUTED,
+        data.stale ? warning : MUTED,
         428,
       );
       const image = new AttachmentBuilder(canvas.toBuffer("image/png"), {

@@ -12,6 +12,7 @@ import {
 } from "../../services/leaderboardModel.service";
 import { replyStatus } from "../../services/commandReply.service";
 import { cardPager } from "../../services/cardPager.service";
+import { themePreferences } from "../../services/theme.service";
 
 export const data = new SlashCommandBuilder()
   .setName("leaderboard")
@@ -83,12 +84,15 @@ export async function execute(
         "No ranks yet",
         "Profiles are refreshing. Try again shortly.",
       );
+    const theme = themePreferences.guildTheme(interaction.guildId);
     const images = await generateLeaderboardCard(
       members,
       mode,
       interaction.guild.name,
+      false,
+      theme,
     );
-    return await cardPager.send(interaction, images);
+    return await cardPager.send(interaction, images, theme);
   } catch (error) {
     console.error(
       "Leaderboard command failed:",

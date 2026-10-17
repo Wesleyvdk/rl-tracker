@@ -49,6 +49,18 @@ client.once(Events.ClientReady, () =>
   console.log(`rl-tracker connected as ${client.user?.tag}`),
 );
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isAutocomplete()) {
+    try {
+      const command = commands.find(
+        (c) => c.data.name === interaction.commandName,
+      );
+      if (command?.autocomplete) await command.autocomplete(interaction);
+      else await interaction.respond([]);
+    } catch {
+      await interaction.respond([]).catch(() => {});
+    }
+    return;
+  }
   if (interaction.isButton()) {
     try {
       await cardPager.handle(interaction);
