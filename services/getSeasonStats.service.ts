@@ -174,8 +174,12 @@ export async function readBrowserSeason(
         result &&
         (transitioned ||
           (initial.selectedId !== option.id && result.unavailable === true))
-      )
+      ) {
+        // Unknown can precede a delayed render. Never reuse that document for
+        // another season, where its late commit could be mislabelled.
+        if (result.unavailable) await page.close().catch(() => {});
         return result;
+      }
       await new Promise((r) => setTimeout(r, 100));
     }
     throw new Error("Season table or identity unavailable");
@@ -357,6 +361,7 @@ export default async function getSeasonStats(
           Math.max(1, Math.min(15000, until - Date.now())),
         );
         rows.push(row);
+        if (row.unavailable) page = null;
       } catch {
         // Closing the old document cancels late clicks/responses before another season.
         await page?.close().catch(() => {});

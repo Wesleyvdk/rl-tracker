@@ -1,5 +1,5 @@
-// Offline browser regression gate. Every page/request is fulfilled locally.
-// Run in Docker with --network none; never starts the Discord client or database.
+// Offline Chromium regression gate. All browser requests are fulfilled locally.
+// Run with --network none; never imports the bot client or database.
 import assert from "node:assert/strict";
 import { launchBrowser } from "../services/browser.service";
 import {
@@ -18,26 +18,26 @@ const options = [
 ];
 const row = (n: number) =>
   `<tr><td class="name"><div class="playlist">Ranked Doubles 2v2</div></td><td class="matches"><div class="value">${n}</div></td></tr>`;
-const html = `<!doctype html><div id="selected" class="multi-switch__item--selected">Season 23 (37)</div>
+function fixture(empty = false, initial = 37) {
+  return `<!doctype html><div id="selected" class="multi-switch__item--selected">${options.find((o) => o.id === initial)!.label}</div>
 <div class="dropdown">${options.map((o) => `<li class="dropdown__item" data-id="${o.id}"><span class="dropdown__item-label">${o.label}</span></li>`).join("")}</div>
-<table class="trn-table"><tbody>${row(25)}</tbody></table>
+<table class="trn-table"><tbody>${empty ? "" : row(25)}</tbody></table>
 <script>
 document.querySelectorAll('li').forEach(li=>li.onclick=async()=>{
- const id=Number(li.dataset.id);
- document.querySelector('#selected').textContent=li.textContent;
+ const id=Number(li.dataset.id);document.querySelector('#selected').textContent=li.textContent;
  const loading=id===11?null:document.createElement('div');if(loading){loading.className='loading-indicator';document.body.append(loading);document.querySelector('tbody').innerHTML='';}
  const response=await fetch('https://api.tracker.gg/api/v2/rocket-league/standard/profile/epic/Fixture/segments/playlist?season='+id,{headers:{'X-Fixture':'test'}});
  await response.json();
- // The response is complete before the DOM commits. No fixed frame count is enough.
  await new Promise(r=>setTimeout(r,id===37?5000:850));
- document.querySelector('tbody').innerHTML=id<=13?'':${JSON.stringify(row(50))};loading?.remove();
+ document.querySelector('tbody').innerHTML=id===11?${JSON.stringify(row(123))}:id<=13?'':${JSON.stringify(row(50))};loading?.remove();
 });
 </script>`;
+}
 const browser = await launchBrowser();
 let preflights = 0,
   gets = 0,
   unexpected = 0;
-try {
+async function makePage(empty = false, initial = 37) {
   const page = await browser.newPage();
   await page.setRequestInterception(true);
   page.on("request", (request: any) => {
@@ -45,7 +45,7 @@ try {
       return void request.respond({
         status: 200,
         contentType: "text/html",
-        body: html,
+        body: fixture(empty, initial),
       });
     if (
       request
@@ -75,7 +75,11 @@ try {
     void request.abort();
   });
   await page.goto(url, { waitUntil: "domcontentloaded" });
-  const started = Date.now();
+  return page;
+}
+try {
+  const page = await makePage(),
+    started = Date.now();
   const first = await boundedPage(
     page,
     () => readBrowserSeason(page, options[0], "epic", "Fixture", true),
@@ -91,36 +95,50 @@ try {
   );
   assert.equal(identical.seasonId, 14);
   assert.equal(identical.totalMatches, 50);
+  await page.close();
   for (const option of options.slice(3)) {
+    const emptyPage = await makePage(true);
     const empty = await boundedPage(
-      page,
-      () => readBrowserSeason(page, option, "epic", "Fixture", true),
+      emptyPage,
+      () => readBrowserSeason(emptyPage, option, "epic", "Fixture", true),
       6000,
     );
     assert.equal(empty.unavailable, true);
     assert.equal(empty.totalMatches, null);
+    assert.equal(emptyPage.isClosed(), true);
   }
-  assert(gets >= 2);
-  assert(preflights >= 2);
+  // ID11's pending123-count commit cannot reach this fresh document/selection.
+  const nextPage = await makePage();
+  const next = await boundedPage(
+    nextPage,
+    () => readBrowserSeason(nextPage, options[0], "epic", "Fixture", true),
+    6000,
+  );
+  assert.equal(next.totalMatches, 50);
+  await nextPage.close();
+  const timeoutPage = await makePage(false, 38);
   await assert.rejects(
     boundedPage(
-      page,
-      () => readBrowserSeason(page, options[1], "epic", "Fixture", true),
+      timeoutPage,
+      () => readBrowserSeason(timeoutPage, options[1], "epic", "Fixture", true),
       1000,
     ),
     /deadline/,
   );
   await new Promise((r) => setTimeout(r, 200));
-  assert.equal(page.isClosed(), true);
+  assert.equal(timeoutPage.isClosed(), true);
+  assert(preflights >= 6);
+  assert(gets >= 6);
   assert.equal(unexpected, 0);
   console.log(
     JSON.stringify({
-      offlineBrowserChecks: 5,
       delayedDomCommit: true,
       identicalTables: true,
       firstSelectedVerified: true,
       preflightsIgnored: preflights,
       completedGets: gets,
+      unknownDocumentsClosed: true,
+      lateUnknownCommitIsolated: true,
       timeoutClosedDocument: true,
       unexpectedRequests: unexpected,
     }),

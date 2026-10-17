@@ -363,6 +363,7 @@ test("without a reload, matching GET permits only unknown empty data, never stal
       close: async () => {
         closed = true;
       },
+      isClosed: () => closed,
     };
   };
   const empty = '<table class="trn-table"><tbody></tbody></table>';
@@ -374,6 +375,7 @@ test("without a reload, matching GET permits only unknown empty data, never stal
   );
   expect(result.unavailable).toBe(true);
   expect(result.totalMatches).toBeNull();
+  expect(page.isClosed()).toBe(true);
   for (const body of [
     table("25"),
     '<table class="trn-table"><tbody><tr><td>No matches played this season</td></tr></tbody></table>',
