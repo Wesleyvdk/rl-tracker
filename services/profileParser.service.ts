@@ -1,4 +1,4 @@
-import { load } from "cheerio";
+import { load, type CheerioAPI } from "cheerio";
 export interface PlaylistStats {
   playlist: string;
   rank: string;
@@ -62,6 +62,33 @@ export function parseProfileHtml(html: string): ProfileResult {
       error: "Player profile not found.",
       failureReason: "profile_not_found",
     };
+  const tableData = playlistRows($);
+  if (
+    !tableData.length ||
+    tableData.every((row) => row.mmr === null && row.rank === "Unranked")
+  )
+    return {
+      error: /network error|server error/i.test(body)
+        ? "Tracker returned an error page."
+        : "Profile loaded without a usable rank table.",
+      failureReason: "table_unavailable",
+    };
+  const reward = $('[class*="reward"]')
+    .filter((_, node) => $(node).text().trim().length < 80)
+    .first()
+    .text()
+    .trim();
+  return {
+    tableData,
+    parsedRewardLevel: reward || "Reward level unavailable",
+    fetchedAt: Date.now(),
+  };
+}
+// Historic counts remain usable when old MMR/rank is unavailable.
+export function parsePlaylistTable(html: string): PlaylistStats[] {
+  return playlistRows(load(html));
+}
+function playlistRows($: CheerioAPI): PlaylistStats[] {
   const tableData: PlaylistStats[] = [];
   $("table.trn-table tbody tr").each((_, row) => {
     const item = $(row);
@@ -88,25 +115,5 @@ export function parseProfileHtml(html: string): ProfileResult {
       prevMMR: parseInteger(item.find("td.change .down").first().text()),
     });
   });
-  if (
-    !tableData.length ||
-    tableData.every((row) => row.mmr === null && row.rank === "Unranked")
-  )
-    return {
-      error: /network error|server error/i.test(body)
-        ? "Tracker returned an error page."
-        : "Profile loaded without a usable rank table.",
-      failureReason: "table_unavailable",
-    };
-  // Extract only the immediate reward label, never all nested card contents.
-  const reward = $('[class*="reward"]')
-    .filter((_, node) => $(node).text().trim().length < 80)
-    .first()
-    .text()
-    .trim();
-  return {
-    tableData,
-    parsedRewardLevel: reward || "Reward level unavailable",
-    fetchedAt: Date.now(),
-  };
+  return tableData;
 }

@@ -1,27 +1,28 @@
-export function parseGamesFromLabel(label: string): number {
-  const match = label.match(/\((\d+)\)/);
-  return match ? parseInt(match[1], 10) : 0;
+export interface SeasonOption {
+  id: number;
+  label: string;
 }
-
+// Parentheses identify the season. They never indicate matches played.
+export function seasonIdFromLabel(label: string): number | null {
+  const match = /^(?:Season\s*|S)(\d+)(?:\s*\((\d+)\))?$/i.exec(label.trim());
+  if (!match) return null;
+  const id = Number(match[2] || match[1]);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
 export function normalizeSeasonLabel(label: string): string {
-  const withMatches = label.match(/Season\s+(\d+)\s*\((\d+)\)/i);
-  if (withMatches) return `S${withMatches[1]} (${withMatches[2]})`;
-  return label.trim();
+  const match = /^(?:Season\s*|S)(\d+)(?:\s*\((\d+)\))?$/i.exec(label.trim());
+  return match
+    ? `${match[2] ? "S" : "Legacy S"}${Number(match[1])}`
+    : label.trim();
 }
-
 export function canonicalizeSeasonLabels(labels: string[]): string[] {
-  const trimmedUnique = Array.from(new Set(labels.map((label) => label.trim()).filter(Boolean)));
-  const numberedWithCount = new Set<number>();
-
-  for (const label of trimmedUnique) {
-    const match = label.match(/Season\s+(\d+)\s*\(\d+\)/i);
-    if (match) numberedWithCount.add(parseInt(match[1], 10));
-  }
-
-  return trimmedUnique.filter((label) => {
-    const bareMatch = label.match(/^Season\s+(\d+)$/i);
-    if (!bareMatch) return true;
-    const seasonNumber = parseInt(bareMatch[1], 10);
-    return !numberedWithCount.has(seasonNumber);
-  });
+  const seen = new Set<number>();
+  return labels
+    .map((s) => s.trim())
+    .filter((label) => {
+      const id = seasonIdFromLabel(label);
+      if (id === null || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
 }
