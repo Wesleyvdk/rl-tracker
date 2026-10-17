@@ -38,7 +38,7 @@ test("unknown streak stays unknown; valid losses produce zero wins, and removed 
  store.record("p",[{...row,streak:null}],now-hour);expect(store.bestWinStreaks("p",now)).toEqual({});
  store.record("p",[{...row,streak:-9}],now);expect(store.bestWinStreaks("p",now)[row.playlist]).toBe(0);
  store.record("p",[],now);expect(store.bestWinStreaks("p",now)).toEqual({});
- const m=makeRankCardModel({name:"p",ranks:[{...row,streak:5}],fetchedAt:now});expect(m.modes[0].bestWinStreak).toBeNull();db.close();
+ const m=makeRankCardModel({name:"p",ranks:[{...row,streak:5}],fetchedAt:now});expect(m.modes[0].bestWinStreak).toBe(5);db.close();
 });
 test("streak history retains existing atomic cache-failure and cached-read semantics",async()=>{
  const db=new Database(":memory:");let streak=8,fail=false;

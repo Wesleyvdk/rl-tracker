@@ -69,14 +69,20 @@ export function makeRankCardModel(input: RankCardInput, now = Date.now()) {
       rank = row?.rank || "Rank unavailable";
     const up = nonnegative(row?.nextMMR),
       down = nonnegative(row?.prevMMR);
+    const streak = Number.isSafeInteger(row?.streak) ? row!.streak : null,
+      retainedBest = nonnegative(input.bestWinStreaks?.[playlist]),
+      currentWins = streak === null ? null : Math.max(0, streak);
     return {
       playlist,
       rank,
       division: row?.division || "Division unavailable",
       mmr: nonnegative(row?.mmr),
       matches: nonnegative(row?.matches),
-      streak: Number.isSafeInteger(row?.streak) ? row!.streak : null,
-      bestWinStreak: nonnegative(input.bestWinStreaks?.[playlist]),
+      streak,
+      bestWinStreak:
+        currentWins === null
+          ? retainedBest
+          : Math.max(retainedBest ?? 0, currentWins),
       up,
       down,
       progress:
