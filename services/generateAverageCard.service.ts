@@ -31,8 +31,10 @@ export default async function generateAverageCards(
   data: AverageCardData,
 ): Promise<AttachmentBuilder[]> {
   const model = averageModel(data.seasonData),
+    visibleRows = model.rows.filter((row) => row.known !== null),
     modePages = Math.max(1, Math.ceil(model.modes.length / 4)),
-    seasonPages = Math.max(1, Math.ceil(model.rows.length / 14));
+    seasonPages = Math.ceil(visibleRows.length / 14);
+  if (!visibleRows.length) return [];
   const total = modePages * seasonPages;
   if (total > 10)
     throw new HistoryCardLimitError(
@@ -42,20 +44,25 @@ export default async function generateAverageCards(
   for (let mp = 0; mp < modePages; mp++)
     for (let sp = 0; sp < seasonPages; sp++) {
       const modes = model.modes.slice(mp * 4, mp * 4 + 4),
-        rows = model.rows.slice(sp * 14, sp * 14 + 14),
+        rows = visibleRows.slice(sp * 14, sp * 14 + 14),
         page = images.length + 1;
       const height = 555 + Math.max(1, rows.length) * 45,
         canvas = Canvas.createCanvas(WIDTH, height),
         ctx = canvas.getContext("2d");
       background(ctx, WIDTH, height);
-      heading(ctx, data.preview ? "DESIGN PREVIEW · SEASON HISTORY" : "SEASON HISTORY", data.name, `${page} / ${total}`);
+      heading(
+        ctx,
+        data.preview ? "DESIGN PREVIEW · SEASON HISTORY" : "SEASON HISTORY",
+        data.name,
+        `${page} / ${total}`,
+      );
       text(
         ctx,
-        `${model.rows.length}${data.coverage ? ` / ${data.coverage.requested.length}` : ""} SEASONS${data.partial ? " · PARTIAL" : ""}${data.coverage?.unavailable?.length ? ` · ${data.coverage.unavailable.length} NO DATA` : ""}`,
+        `${visibleRows.length} SEASONS${data.partial || model.partial ? " · PARTIAL" : ""}`,
         PAD + 5,
         125,
         15,
-        data.partial ? "#f3cb72" : MUTED,
+        data.partial || model.partial ? "#f3cb72" : MUTED,
         500,
         true,
       );
