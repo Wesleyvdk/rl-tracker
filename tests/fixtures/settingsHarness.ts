@@ -102,6 +102,10 @@ assert.equal(
 manage = false;
 roles = [role];
 assert.match((await run(theme, "editor")).description, /Open your editor/);
+assert.equal(
+  (await run(theme, "server", { style: "slate" })).title,
+  "Server theme updated",
+);
 assert.match(
   (await run(config, "role", { scope: "settings", role, allowed: true }))
     .description,

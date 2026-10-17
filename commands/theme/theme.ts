@@ -69,9 +69,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((s) =>
     s
       .setName("server")
-      .setDescription(
-        "Set the server theme; omit style to reset (Manage Server)",
-      )
+      .setDescription("Set the server theme; omit style to reset")
       .addStringOption((o) =>
         o
           .setName("style")
@@ -167,8 +165,8 @@ export async function execute(
       if (!organizations.can(interaction.guildId, actor, "themes"))
         return replyStatus(
           interaction,
-          "Manage Server required",
-          "Ask a server admin to change its theme.",
+          "Theme editing required",
+          "Ask a server admin or a delegated theme editor.",
           "error",
         );
       const id = interaction.options.getString("style") ?? undefined;
