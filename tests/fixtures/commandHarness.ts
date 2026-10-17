@@ -4,12 +4,13 @@ import { mock } from "bun:test";
 import assert from "node:assert/strict";
 import { AttachmentBuilder } from "discord.js";
 import { fileURLToPath } from "node:url";
+import { cardPager } from "../../services/cardPager.service";
 
 const modulePath = (name: string) =>
   fileURLToPath(new URL(`../../services/${name}.service.ts`, import.meta.url));
 const image = () => new AttachmentBuilder(Buffer.from("mock"), { name: "test.png" });
 let account: any = null, accounts: any[] = [], profile: any, season: any;
-let cached: any, renderFailure = false, dbFailure = false, removed = true;
+let cached: any, renderFailure = false, dbFailure = false, removed = true, emptyCards = false;
 let calls: any[][] = [], rendered: any[][] = [];
 const row = { playlist: "Duel 1v1", mmr: 0, rank: "Unranked", streak: 3 };
 class HistoryCardLimitError extends Error {}
@@ -44,7 +45,7 @@ for (const kind of ["Rank", "Leaderboard", "Average"]) {
     default: async (...args: any[]) => {
       if (renderFailure) throw new HistoryCardLimitError("Choose fewer seasons.");
       rendered.push([kind, ...args]);
-      return kind === "Rank" ? image() : [image(), image()];
+      return kind === "Rank" ? image() : emptyCards ? [] : [image(), image()];
     },
   }));
 }
@@ -58,6 +59,7 @@ console.error = (...args) => { errors.push(args); };
 function reset() {
   account = null; accounts = []; cached = null; calls = []; rendered = [];
   dbFailure = renderFailure = false; removed = true;
+  emptyCards = false; cardPager.dispose();
   profile = { tableData: [row], fetchedAt: 12345, stale: true };
   season = { seasonData: [{ season: "Season 1", playlists: {} }], averageStats: [], fetchedAt: 12345, stale: true };
 }
@@ -72,7 +74,7 @@ function interaction(options: Record<string, unknown> = {}, inGuild = true) {
     } } } : null,
     deferReply: async () => { assert.equal(i.replied || i.deferred, false); i.deferred = true; replies.push(["defer"]); },
     reply: async (p: any) => { assert.equal(i.replied || i.deferred, false); i.replied = true; replies.push(["reply", p]); },
-    editReply: async (p: any) => { assert.equal(i.replied || i.deferred, true); replies.push(["edit", p]); },
+    editReply: async (p: any) => { assert.equal(i.replied || i.deferred, true); replies.push(["edit", p]); return { id: "message" }; },
   };
   return { i, replies };
 }
@@ -108,11 +110,14 @@ await scenario(async () => { profile = { failureReason: "profile_not_found" }; c
 await scenario(async () => { renderFailure = true; const r = interaction({ playername: "P" }); await rank.execute(null as any, r.i); assert.equal(title(r), "Couldn't load ranks"); });
 await scenario(async () => {
   const r = interaction({ playername: "P", platform: "psn", seasons: 0, competitive_only: false });
-  await avg.execute(null as any, r.i); assert.equal(payload(r).files.length, 2);
+  await avg.execute(null as any, r.i); assert.equal(payload(r).files.length, 1);
+  assert.equal(payload(r).embeds.length, 1); assert.equal(payload(r).components[0].components[1].data.label, "1 / 2");
+  assert.deepEqual(payload(r).attachments, []);
   assert.deepEqual(calls.find(c => c[0] === "season"), ["season", "P", "psn", 0, false]);
   assert.equal(rendered[0][1].fetchedAt, 12345); assert.equal(rendered[0][1].stale, true);
 });
 await scenario(async () => { season = { seasonData: [], failureReason: "profile_not_found" }; const r = interaction({ playername: "P" }); await avg.execute(null as any, r.i); assert.equal(title(r), "History unavailable"); });
+await scenario(async () => { emptyCards = true; const r = interaction({ playername: "P" }); await avg.execute(null as any, r.i); assert.equal(title(r), "History unavailable"); assert.equal(payload(r).embeds[0].toJSON().description, "No match counts are available for these seasons."); });
 await scenario(async () => { renderFailure = true; const r = interaction({ playername: "P" }); await avg.execute(null as any, r.i); assert.equal(title(r), "Couldn't load history"); assert.equal(payload(r).embeds[0].toJSON().description, "Choose fewer seasons."); });
 await scenario(async () => { const r = interaction({ mode: "competitive" }, false); await board.execute(null as any, r.i); assert.equal(title(r), "Server only"); });
 await scenario(async () => { const r = interaction({ mode: "wrong" }); await board.execute(null as any, r.i); assert.equal(title(r), "Choose a mode"); });
@@ -121,7 +126,9 @@ await scenario(async () => {
   accounts = [{ discord_id: "user", playername: "P", platform: "epic" }, { discord_id: "outsider", playername: "Hidden", platform: "epic" }];
   cached = { tableData: [row], fetchedAt: 12345, stale: true };
   const r = interaction({ mode: "competitive" }); await board.execute(null as any, r.i);
-  assert.equal(payload(r).files.length, 2); assert.equal(rendered[0][1].length, 1);
+  assert.equal(payload(r).files.length, 1); assert.equal(payload(r).embeds.length, 1);
+  assert.equal(payload(r).components[0].components[1].data.label, "1 / 2");
+  assert.equal(rendered[0][1].length, 1);
   assert.equal(rendered[0][1][0].fetchedAt, 12345); assert.equal(calls.filter(c => c[0] === "get").length, 1);
 });
 await scenario(async () => { accounts = [{ discord_id: "user", playername: "P", platform: "epic" }]; const r = interaction({ mode: "extra" }); await board.execute(null as any, r.i); assert.equal(title(r), "No ranks yet"); assert.equal(calls.filter(c => c[0] === "get").length, 1); });
@@ -132,4 +139,5 @@ await scenario(async () => { const r = interaction(); await unlink.execute(null 
 await scenario(async () => { removed = false; const r = interaction(); await unlink.execute(null as any, r.i); assert.equal(title(r), "Nothing to unlink"); });
 await scenario(async () => { dbFailure = true; const r = interaction(); await unlink.execute(null as any, r.i); assert.equal(title(r), "Couldn't unlink profile"); });
 assert.equal(errors.length, 4);
+cardPager.dispose();
 console.log(`${scenarios} isolated command scenarios passed; no Discord transport`);

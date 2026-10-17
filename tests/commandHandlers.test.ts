@@ -16,6 +16,6 @@ test("all five handlers execute isolated success/error/cache/pagination scenario
       new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited,
     ]);
     expect({ code, err }).toEqual({ code: 0, err: "" });
-    expect(out).toContain("22 isolated command scenarios passed; no Discord transport");
+    expect(out).toContain("23 isolated command scenarios passed; no Discord transport");
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 });

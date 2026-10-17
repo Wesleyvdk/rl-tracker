@@ -10,7 +10,8 @@ import {
   leaderboardModel,
   type BoardAccount,
 } from "../../services/leaderboardModel.service";
-import { replyStatus, imageMessage } from "../../services/commandReply.service";
+import { replyStatus } from "../../services/commandReply.service";
+import { cardPager } from "../../services/cardPager.service";
 
 export const data = new SlashCommandBuilder()
   .setName("leaderboard")
@@ -87,7 +88,7 @@ export async function execute(
       mode,
       interaction.guild.name,
     );
-    return interaction.editReply(imageMessage(images));
+    return await cardPager.send(interaction, images);
   } catch (error) {
     console.error(
       "Leaderboard command failed:",

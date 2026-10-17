@@ -7,6 +7,7 @@ import { refreshLinkedProfiles } from "./services/profile.service";
 import { shutdownBrowsers } from "./services/browser.service";
 import { db } from "./services/database.service";
 import { statusMessage, replyStatus } from "./services/commandReply.service";
+import { cardPager } from "./services/cardPager.service";
 
 const commands = await loadCommands();
 if (!process.env.BOT_TOKEN) throw new Error("BOT_TOKEN is required");
@@ -48,6 +49,14 @@ client.once(Events.ClientReady, () =>
   console.log(`rl-tracker connected as ${client.user?.tag}`),
 );
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isButton()) {
+    try {
+      await cardPager.handle(interaction);
+    } catch {
+      console.warn("Card button response failed");
+    }
+    return;
+  }
   if (!interaction.isChatInputCommand()) return;
   try {
     const command = commands.find(
@@ -82,6 +91,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 async function shutdown() {
   job.stop();
   clearInterval(heartbeat);
+  cardPager.dispose();
   await client.destroy();
   await shutdownBrowsers();
   rmSync(healthPath, { force: true });
