@@ -466,7 +466,8 @@ button:disabled {
   fieldset:first-child {
     grid-column: 1/-1;
   }
-  fieldset:nth-child(2) {
+  fieldset:nth-child(2),
+  fieldset:nth-child(3) {
     grid-column: 1/-1;
   }
   .design-gallery {
