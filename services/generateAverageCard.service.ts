@@ -1,6 +1,6 @@
 import Canvas from "@napi-rs/canvas";
 import { AttachmentBuilder } from "discord.js";
-import type { SeasonData, AverageStats } from "../types";
+import type { SeasonData, AverageStats, SeasonStatsResult } from "../types";
 import { averageModel } from "./averageCardModel.service";
 import { rankAppearance, nonnegative } from "./rankCardModel.service";
 import {
@@ -23,6 +23,8 @@ export interface AverageCardData {
   fetchedAt?: number;
   stale?: boolean;
   preview?: boolean;
+  partial?: boolean;
+  coverage?: SeasonStatsResult["coverage"];
 }
 export class HistoryCardLimitError extends Error {}
 export default async function generateAverageCards(
@@ -49,11 +51,11 @@ export default async function generateAverageCards(
       heading(ctx, data.preview ? "DESIGN PREVIEW · SEASON HISTORY" : "SEASON HISTORY", data.name, `${page} / ${total}`);
       text(
         ctx,
-        `${model.rows.length} SEASONS`,
+        `${model.rows.length}${data.coverage ? ` / ${data.coverage.requested.length}` : ""} SEASONS${data.partial ? " · PARTIAL" : ""}${data.coverage?.unavailable?.length ? ` · ${data.coverage.unavailable.length} NO DATA` : ""}`,
         PAD + 5,
         125,
         15,
-        MUTED,
+        data.partial ? "#f3cb72" : MUTED,
         500,
         true,
       );

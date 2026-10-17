@@ -12,9 +12,9 @@ export function averageModel(seasons: SeasonData[]) {
       nonnegative(p.matches),
     );
     const valid = counts.filter((n): n is number => n !== null);
-    const known = valid.length ? valid.reduce((a, b) => a + b, 0) : null;
+    const known = valid.length ? valid.reduce((a, b) => a + b, 0) : s.noMatches ? 0 : null;
     const complete =
-      counts.length > 0 &&
+      (counts.length > 0 || s.noMatches === true) &&
       valid.length === counts.length &&
       nonnegative(s.totalMatches) !== null &&
       s.totalMatches === known;

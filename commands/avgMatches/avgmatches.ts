@@ -91,6 +91,8 @@ export async function execute(
       averageStats: stats.averageStats,
       fetchedAt: stats.fetchedAt,
       stale: stats.stale,
+      partial: stats.partial,
+      coverage: stats.coverage,
     });
     return interaction.editReply(imageMessage(images));
   } catch (error) {
