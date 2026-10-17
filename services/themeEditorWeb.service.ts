@@ -11,6 +11,7 @@ import generateRankCard from "./generateRankCard.service";
 import generateBoard from "./generateLeaderboardCard.service";
 import generateAverage from "./generateAverageCard.service";
 import { previewInput } from "./themePreview.service";
+import { BACKGROUND_STYLES } from "./backgroundDesign.service";
 export interface EditorWebOptions {
   baseUrl: string;
   clientId: string;
@@ -164,6 +165,13 @@ export function createThemeEditorHandler(options: EditorWebOptions) {
       },
     ],
   ]);
+  for (const style of BACKGROUND_STYLES)
+    assets.set("/assets/backgrounds/" + style + ".webp", {
+      body: readFileSync(
+        new URL("../assets/backgrounds/" + style + ".webp", import.meta.url),
+      ),
+      type: "image/webp",
+    });
   const html = readFileSync(new URL("../web/editor.html", import.meta.url));
   let active = 0,
     renders = 0,

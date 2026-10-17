@@ -1,4 +1,8 @@
 import { readFileSync } from "node:fs";
+import {
+  validBackground,
+  type BackgroundDesign,
+} from "./backgroundDesign.service";
 
 export const DEFAULT_THEME = "rose";
 export interface ThemeColors {
@@ -23,11 +27,7 @@ export interface CardTheme {
   logo?: string;
   radius: number;
   neon: boolean;
-  backgroundDesign?: Readonly<{
-    style: "solid" | "gradient" | "aurora" | "contours";
-    end: string;
-    angle: number;
-  }>;
+  backgroundDesign?: Readonly<BackgroundDesign>;
   colors: Readonly<ThemeColors>;
 }
 const colorKeys: (keyof ThemeColors)[] = [
@@ -93,6 +93,8 @@ export class ThemeRegistry {
             !slug.test(theme.organization))) ||
         (theme.brand !== undefined &&
           (typeof theme.brand !== "string" || theme.brand.length > 22)) ||
+        (theme.backgroundDesign !== undefined &&
+          !validBackground(theme.backgroundDesign)) ||
         (theme.logo !== undefined &&
           (typeof theme.logo !== "string" ||
             !/^[a-z][a-z0-9-]*\/[a-z0-9-]+\.(png|webp)$/.test(theme.logo)))
@@ -100,7 +102,13 @@ export class ThemeRegistry {
         throw new Error("Invalid theme definition");
       this.themes.set(
         theme.id,
-        Object.freeze({ ...theme, colors: Object.freeze({ ...theme.colors }) }),
+        Object.freeze({
+          ...theme,
+          colors: Object.freeze({ ...theme.colors }),
+          ...(theme.backgroundDesign
+            ? { backgroundDesign: Object.freeze({ ...theme.backgroundDesign }) }
+            : {}),
+        }),
       );
     }
     if (this.get(DEFAULT_THEME)?.scope !== "public")

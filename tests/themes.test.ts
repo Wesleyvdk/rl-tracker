@@ -87,25 +87,25 @@ test("user/server/default inheritance isolates duplicate links, guilds and organ
   const { db, prefs } = store();
   try {
     expect(prefs.resolve("a", guild)).toBe("rose");
-    prefs.setGuild(guild, "jade");
-    expect(prefs.resolve("a", guild)).toBe("jade");
+    prefs.setGuild(guild, "slate");
+    expect(prefs.resolve("a", guild)).toBe("slate");
     prefs.setUser("a", "dune", guild);
     expect(prefs.resolve("a", guild)).toBe("dune");
-    expect(prefs.resolve("b", guild)).toBe("jade");
-    expect(prefs.guildTheme(guild)).toBe("jade");
+    expect(prefs.resolve("b", guild)).toBe("slate");
+    expect(prefs.guildTheme(guild)).toBe("slate");
     expect(prefs.guildTheme(otherGuild)).toBe("rose");
     prefs.resetUser("a");
-    expect(prefs.resolve("a", guild)).toBe("jade");
+    expect(prefs.resolve("a", guild)).toBe("slate");
     prefs.setUser("a", "rsc", guild);
     expect(prefs.resolve("a", guild)).toBe("rsc");
     expect(prefs.resolve("a", otherGuild)).toBe("rose");
     expect(prefs.resolve("a")).toBe("rose");
     expect(() => prefs.setUser("b", "rsc", otherGuild)).toThrow();
-    expect(() => prefs.setUser("missing", "jade")).toThrow();
+    expect(() => prefs.setUser("missing", "slate")).toThrow();
     db.query(
       "UPDATE account_themes SET theme_id='deleted-theme' WHERE discord_id='a'",
     ).run();
-    expect(prefs.resolve("a", guild)).toBe("jade");
+    expect(prefs.resolve("a", guild)).toBe("slate");
     prefs.setGuild(guild);
     expect(prefs.resolve("a", guild)).toBe("rose");
   } finally {
@@ -179,7 +179,7 @@ test("Tournament occupies fourth position with honest unavailable badge, includi
 });
 test("concurrent themed render contexts do not leak colors or brand into each other", async () => {
   const a = createCardStyle("dune"),
-    b = createCardStyle("jade");
+    b = createCardStyle("slate");
   const ca = Canvas.createCanvas(40, 40),
     cb = Canvas.createCanvas(40, 40);
   a.background(ca.getContext("2d"), 40, 40);
@@ -188,11 +188,11 @@ test("concurrent themed render contexts do not leak colors or brand into each ot
   const pixel = (c: any) =>
     [...c.getContext("2d").getImageData(0, 0, 1, 1).data].slice(0, 3);
   expect(pixel(ca)).toEqual([238, 229, 214]);
-  expect(pixel(cb)).toEqual([24, 46, 40]);
+  expect(pixel(cb)).toEqual([30, 34, 39]);
   const inputs = [
-    previewInput("slate"),
+    previewInput("rose"),
     previewInput("dune"),
-    previewInput("jade"),
+    previewInput("slate"),
     previewInput("rsc"),
   ];
   const images = await Promise.all(inputs.map((i) => generateRank(i)));
@@ -203,7 +203,7 @@ test("concurrent themed render contexts do not leak colors or brand into each ot
   for (const image of images) {
     const bytes = image.attachment as Buffer;
     expect(bytes.readUInt32BE(16)).toBe(1280);
-    expect(bytes.readUInt32BE(20)).toBe(1424);
+    expect(bytes.readUInt32BE(20)).toBe(1484);
     expect(bytes.length).toBeLessThan(8 * 1024 * 1024);
   }
 });
@@ -262,7 +262,7 @@ test("pagination captures one theme per view, including embed accents", async ()
   try {
     let choice = "dune";
     await pager.send(command("a", first), files(), choice);
-    choice = "jade";
+    choice = "slate";
     await pager.send(command("b", second), files(), choice);
     const click: any = {
       customId: first[0].components[0].toJSON().components[2].custom_id,
@@ -278,7 +278,7 @@ test("pagination captures one theme per view, including embed accents", async ()
       parseInt(getTheme(id).colors.accent.slice(1), 16);
     expect(first[0].embeds[0].toJSON().color).toBe(color("dune"));
     expect(first[1].embeds[0].toJSON().color).toBe(color("dune"));
-    expect(second[0].embeds[0].toJSON().color).toBe(color("jade"));
+    expect(second[0].embeds[0].toJSON().color).toBe(color("slate"));
   } finally {
     pager.dispose();
   }

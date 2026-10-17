@@ -46,7 +46,7 @@ export default async function generateAverageCards(
       const modes = model.modes.slice(mp * 4, mp * 4 + 4),
         rows = visibleRows.slice(sp * 14, sp * 14 + 14),
         page = images.length + 1;
-      const height = 555 + Math.max(1, rows.length) * 45,
+      const height = 615 + Math.max(1, rows.length) * 45,
         canvas = Canvas.createCanvas(WIDTH, height),
         ctx = canvas.getContext("2d");
       background(ctx, WIDTH, height);
@@ -60,7 +60,7 @@ export default async function generateAverageCards(
         ctx,
         `${visibleRows.length} SEASONS${data.partial || model.partial ? " · PARTIAL" : ""}`,
         PAD + 5,
-        125,
+        168,
         15,
         data.partial || model.partial ? warning : MUTED,
         500,
@@ -70,7 +70,7 @@ export default async function generateAverageCards(
         ctx,
         `${model.known === null ? "—" : model.known.toLocaleString("en-US")}${model.partial && model.known !== null ? "+" : ""} KNOWN MATCHES`,
         650,
-        125,
+        168,
         15,
         positive,
         590,
@@ -87,7 +87,7 @@ export default async function generateAverageCards(
             color: style.rankColor(originalLook.color),
           },
           x = PAD + i * (w + gap),
-          y = 155;
+          y = 215;
         panel(ctx, x, y, w, 195, look.color);
         text(ctx, shortMode(mode), x + 20, y + 34, 20, WHITE, w - 40, true);
         text(
@@ -128,11 +128,11 @@ export default async function generateAverageCards(
         );
         text(ctx, "AVG RANK", x + 20, y + 180, 11, MUTED, w - 40);
       }
-      text(ctx, "MATCHES PER SEASON", PAD + 5, 391, 17, WHITE, 750, true);
+      text(ctx, "MATCHES PER SEASON", PAD + 5, 451, 17, WHITE, 750, true);
       const seasonW = 178,
         totalW = 142,
         colW = (WIDTH - PAD * 2 - seasonW - totalW) / Math.max(1, modes.length);
-      const tableY = 411;
+      const tableY = 471;
       ctx.fillStyle = style.colors.surfaceAlt;
       ctx.fillRect(PAD, tableY, WIDTH - PAD * 2, 39);
       text(ctx, "SEASON", PAD + 15, tableY + 26, 14, MUTED, seasonW - 25, true);
@@ -188,6 +188,7 @@ export default async function generateAverageCards(
           true,
         );
       }
+      style.footer(ctx, height);
       text(
         ctx,
         `${model.average === null ? "—" : model.average.toLocaleString("en-US")} AVG / COMPLETE SEASON${model.partial ? "   ·   + PARTIAL" : ""}`,

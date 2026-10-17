@@ -39,37 +39,35 @@ export default async function generateRankCard(
   const canvas = Canvas.createCanvas(WIDTH, height),
     ctx = canvas.getContext("2d");
   background(ctx, WIDTH, height);
-  ctx.fillStyle = style.colors.accent;
-  rounded(ctx, PAD, 31, 4, 101, 2);
-  ctx.fill();
+  style.header(ctx);
   text(
     ctx,
     input.preview
       ? "DESIGN PREVIEW · SYNTHETIC HISTORY"
       : `PLAYER REPORT · ${(input.platform || "ROCKET LEAGUE").toUpperCase()}`,
     PAD + 19,
-    49,
+    65,
     15,
     input.preview ? warning : MUTED,
     880,
     true,
   );
-  text(ctx, input.name, PAD + 17, 101, 43, WHITE, 880, true);
+  text(ctx, input.name, PAD + 17, 130, 54, WHITE, 880, true);
   text(
     ctx,
     input.rewardLevel || "Reward level unavailable",
     PAD + 19,
-    132,
+    168,
     18,
     MUTED,
     860,
   );
-  await style.brand(ctx, 1025, 48, 223, 23);
+  await style.brand(ctx, 1025, 65, 205, 20);
   pill(
     ctx,
     model.at ? (model.stale ? "CACHED" : "UPDATED") : "TIME UNAVAILABLE",
     1025,
-    69,
+    92,
     model.stale || !model.at ? warning : positive,
     223,
   );
@@ -77,7 +75,7 @@ export default async function generateRankCard(
     ctx,
     `${model.available} / ${model.modes.length} MODES AVAILABLE`,
     1025,
-    126,
+    159,
     15,
     MUTED,
     223,
@@ -87,24 +85,10 @@ export default async function generateRankCard(
     const m = { ...source, color: style.rankColor(source.color) };
     const x = PAD + (i % 2) * (w + GAP),
       y = TOP + Math.floor(i / 2) * (TILE + GAP);
+    style.surface(ctx, x, y, w, TILE, m.color, true);
     ctx.save();
     rounded(ctx, x, y, w, TILE, style.theme.radius);
     ctx.clip();
-    ctx.fillStyle = style.theme.neon ? "#111c2b" : style.colors.surface;
-    ctx.fillRect(x, y, w, TILE);
-    if (style.theme.neon) {
-      const wash = ctx.createLinearGradient(x, y, x + w, y + TILE);
-      wash.addColorStop(0, m.color + "13");
-      wash.addColorStop(0.7, m.color + "03");
-      wash.addColorStop(1, m.color + "0b");
-      ctx.fillStyle = wash;
-      ctx.fillRect(x, y, w, TILE);
-      const edge = ctx.createLinearGradient(x, y, x + w, y);
-      edge.addColorStop(0, m.color);
-      edge.addColorStop(1, m.color + "08");
-      ctx.fillStyle = edge;
-    } else ctx.fillStyle = m.color;
-    ctx.fillRect(x, y, w, style.theme.neon ? 3 : 2);
     text(
       ctx,
       String(i + 1).padStart(2, "0"),
@@ -204,7 +188,7 @@ export default async function generateRankCard(
       );
     text(
       ctx,
-      `BEST SEEN ${m.bestWinStreak === null ? "—" : m.bestWinStreak + "W"}`,
+      `BEST STREAK ${m.bestWinStreak === null ? "—" : m.bestWinStreak + "W"}`,
       x + 24,
       y + 210,
       13,
@@ -266,6 +250,7 @@ export default async function generateRankCard(
     rounded(ctx, x + 0.5, y + 0.5, w - 1, TILE - 1, style.theme.radius);
     ctx.stroke();
   }
+  style.footer(ctx, height);
   const footer = height - 38;
   ctx.fillStyle = border;
   ctx.fillRect(PAD, footer - 24, WIDTH - PAD * 2, 1);
@@ -295,7 +280,7 @@ export default async function generateRankCard(
     name: "rank.png",
   });
   attachment.setDescription(
-    `${input.name}: ${model.modes.map((m) => `${m.playlist}: ${m.rank}, ${m.mmr ?? "unavailable"} MMR, best seen ${m.bestWinStreak ?? "unknown"} wins`).join("; ")}. Best seen uses reported streaks from retained local observations, not a verified lifetime record. ${model.stale ? "Cached snapshot. " : ""}${model.at ? "Observed " + new Date(model.at).toISOString() : "Observation time unavailable"}.`.slice(
+    `${input.name}: ${model.modes.map((m) => `${m.playlist}: ${m.rank}, ${m.mmr ?? "unavailable"} MMR, best streak ${m.bestWinStreak ?? "unknown"} wins`).join("; ")}. Best streak uses reported streaks from retained local observations, not a verified lifetime record. ${model.stale ? "Cached snapshot. " : ""}${model.at ? "Observed " + new Date(model.at).toISOString() : "Observation time unavailable"}.`.slice(
       0,
       1024,
     ),

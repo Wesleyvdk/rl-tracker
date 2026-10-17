@@ -11,7 +11,7 @@ const row = parseProfileHtml(
   readFileSync(new URL("./fixtures/rank-table.html", import.meta.url), "utf8"),
 ).tableData![0];
 
-test("best seen includes the current streak, preserves larger records, and keeps unknowns distinct from zero", () => {
+test("best streak includes the current streak, preserves larger records, and keeps unknowns distinct from zero", () => {
   const cases: [
     number | null | undefined,
     number | undefined,
@@ -52,7 +52,7 @@ test("best seen includes the current streak, preserves larger records, and keeps
   }
 });
 
-test("a pre-history cached winning streak renders as best seen without writing observations", async () => {
+test("a pre-history cached winning streak renders as best streak without writing observations", async () => {
   const db = new Database(":memory:");
   let fetches = 0;
   const cache = new ProfileCache(
@@ -80,7 +80,7 @@ test("a pre-history cached winning streak renders as best seen without writing o
       bestWinStreaks: best,
     });
     expect(image.description).toContain(
-      `${row.playlist}: ${row.rank}, ${row.mmr} MMR, best seen 5 wins`,
+      `${row.playlist}: ${row.rank}, ${row.mmr} MMR, best streak 5 wins`,
     );
     expect(fetches).toBe(0);
     expect(db.query("SELECT COUNT(*) n FROM mmr_history").get()).toEqual({

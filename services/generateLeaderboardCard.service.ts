@@ -30,7 +30,7 @@ export default async function generateLeaderboardCards(
     images: AttachmentBuilder[] = [];
   for (let page = 0; page < pages; page++) {
     const rows = model.rows.slice(page * 10, page * 10 + 10),
-      height = 220 + Math.max(1, rows.length) * 126;
+      height = 280 + Math.max(1, rows.length) * 126;
     const canvas = Canvas.createCanvas(WIDTH, height),
       ctx = canvas.getContext("2d");
     background(ctx, WIDTH, height);
@@ -40,7 +40,7 @@ export default async function generateLeaderboardCards(
       guild,
       `${page + 1} / ${pages}`,
     );
-    text(ctx, "HIGHEST SELECTED-MODE MMR", PAD + 6, 124, 14, MUTED, 800, true);
+    text(ctx, "HIGHEST SELECTED-MODE MMR", PAD + 19, 168, 14, MUTED, 800, true);
     const start = 350,
       col = (WIDTH - PAD - start) / model.modes.length;
     model.modes.forEach((name, i) =>
@@ -48,7 +48,7 @@ export default async function generateLeaderboardCards(
         ctx,
         shortMode(name),
         start + i * col + 8,
-        155,
+        215,
         16,
         MUTED,
         col - 16,
@@ -56,7 +56,7 @@ export default async function generateLeaderboardCards(
       ),
     );
     for (const [i, row] of rows.entries()) {
-      const y = 174 + i * 126,
+      const y = 234 + i * 126,
         place = page * 10 + i + 1,
         color =
           place === 1
@@ -132,7 +132,8 @@ export default async function generateLeaderboardCards(
       }
     }
     if (!rows.length)
-      text(ctx, "No ranks available", PAD + 30, 230, 25, MUTED, 1000);
+      text(ctx, "No ranks available", PAD + 30, 290, 25, MUTED, 1000);
+    style.footer(ctx, height);
     text(
       ctx,
       `TOP ${model.rows.length}${model.total > 25 ? ` OF ${model.total}` : ""}`,

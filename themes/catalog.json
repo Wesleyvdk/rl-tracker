@@ -42,29 +42,9 @@
       }
     },
     {
-      "id": "jade",
-      "name": "Jade",
-      "description": "Deep forest with soft sage accents",
-      "scope": "public",
-      "radius": 10,
-      "neon": false,
-      "colors": {
-        "background": "#182e28",
-        "surface": "#213c34",
-        "surfaceAlt": "#2b493f",
-        "text": "#eef3e9",
-        "muted": "#b3c7ba",
-        "border": "#496456",
-        "accent": "#c2d2ae",
-        "positive": "#b7ddbf",
-        "negative": "#eeb8b0",
-        "warning": "#e8cd9f"
-      }
-    },
-    {
       "id": "rose",
       "name": "Rose",
-      "description": "Dusty plum with layered, quiet gradients",
+      "description": "Dusty rose satin with sculpted folds and matte data panels",
       "scope": "public",
       "radius": 8,
       "neon": false,
@@ -81,9 +61,10 @@
         "warning": "#e5c4a0"
       },
       "backgroundDesign": {
-        "style": "aurora",
+        "style": "satin",
         "end": "#201d2a",
-        "angle": 125
+        "angle": 125,
+        "intensity": 85
       }
     },
     {
@@ -104,6 +85,162 @@
         "positive": "#79e2c2",
         "negative": "#ff9eaf",
         "warning": "#f3cb72"
+      }
+    },
+    {
+      "id": "circuit",
+      "name": "Circuit",
+      "description": "Charcoal schematics, routed traces and crimson hardware framing",
+      "scope": "public",
+      "radius": 3,
+      "neon": false,
+      "colors": {
+        "background": "#17191e",
+        "surface": "#272a31",
+        "surfaceAlt": "#30343d",
+        "text": "#f4f1f5",
+        "muted": "#c6c5d0",
+        "border": "#647080",
+        "accent": "#ffacb5",
+        "positive": "#b8d9c4",
+        "negative": "#f2b9c2",
+        "warning": "#ead1a6"
+      },
+      "backgroundDesign": {
+        "style": "circuit",
+        "end": "#201a24",
+        "angle": 145,
+        "intensity": 85
+      }
+    },
+    {
+      "id": "chrome",
+      "name": "Chrome",
+      "description": "Flowing silver ribbons and iridescent liquid metal",
+      "scope": "public",
+      "radius": 10,
+      "neon": false,
+      "colors": {
+        "background": "#191c2b",
+        "surface": "#272c3b",
+        "surfaceAlt": "#303646",
+        "text": "#f4f1f5",
+        "muted": "#c6c5d0",
+        "border": "#647080",
+        "accent": "#c8c9f0",
+        "positive": "#b8d9c4",
+        "negative": "#f2b9c2",
+        "warning": "#ead1a6"
+      },
+      "backgroundDesign": {
+        "style": "chrome",
+        "end": "#222032",
+        "angle": 125,
+        "intensity": 85
+      }
+    },
+    {
+      "id": "prism",
+      "name": "Prism",
+      "description": "Broad crystalline facets in amethyst and glacier blue",
+      "scope": "public",
+      "radius": 10,
+      "neon": false,
+      "colors": {
+        "background": "#211e30",
+        "surface": "#2c2b40",
+        "surfaceAlt": "#36354a",
+        "text": "#f4f1f5",
+        "muted": "#c6c5d0",
+        "border": "#647080",
+        "accent": "#beb1ed",
+        "positive": "#b8d9c4",
+        "negative": "#f2b9c2",
+        "warning": "#ead1a6"
+      },
+      "backgroundDesign": {
+        "style": "prism",
+        "end": "#182536",
+        "angle": 110,
+        "intensity": 85
+      }
+    },
+    {
+      "id": "contour",
+      "name": "Contour",
+      "description": "Fine organic contour fields on deep indigo",
+      "scope": "public",
+      "radius": 10,
+      "neon": false,
+      "colors": {
+        "background": "#181d30",
+        "surface": "#262d40",
+        "surfaceAlt": "#30384b",
+        "text": "#f4f1f5",
+        "muted": "#c6c5d0",
+        "border": "#647080",
+        "accent": "#b1c6f0",
+        "positive": "#b8d9c4",
+        "negative": "#f2b9c2",
+        "warning": "#ead1a6"
+      },
+      "backgroundDesign": {
+        "style": "contours",
+        "end": "#221c35",
+        "angle": 135,
+        "intensity": 85
+      }
+    },
+    {
+      "id": "orbit",
+      "name": "Orbit",
+      "description": "Nebula clouds, star clusters and an orbital horizon",
+      "scope": "public",
+      "radius": 10,
+      "neon": false,
+      "colors": {
+        "background": "#21182c",
+        "surface": "#30273d",
+        "surfaceAlt": "#3b3049",
+        "text": "#f4f1f5",
+        "muted": "#c6c5d0",
+        "border": "#647080",
+        "accent": "#e3b4d4",
+        "positive": "#b8d9c4",
+        "negative": "#f2b9c2",
+        "warning": "#ead1a6"
+      },
+      "backgroundDesign": {
+        "style": "orbit",
+        "end": "#181e30",
+        "angle": 145,
+        "intensity": 85
+      }
+    },
+    {
+      "id": "frost",
+      "name": "Frost",
+      "description": "Glacial planes, cyan reflections and fractured edges",
+      "scope": "public",
+      "radius": 10,
+      "neon": false,
+      "colors": {
+        "background": "#172236",
+        "surface": "#243448",
+        "surfaceAlt": "#2e3e53",
+        "text": "#f4f1f5",
+        "muted": "#c9d9e7",
+        "border": "#648199",
+        "accent": "#c0e0ed",
+        "positive": "#b8d9c4",
+        "negative": "#f2b9c2",
+        "warning": "#ead1a6"
+      },
+      "backgroundDesign": {
+        "style": "frost",
+        "end": "#182c3d",
+        "angle": 125,
+        "intensity": 85
       }
     },
     {

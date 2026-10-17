@@ -10,10 +10,10 @@ import { text } from "../services/cardTheme.service";
 const out = process.argv[2] || "benchmark/results/theme-system/previews";
 mkdirSync(out, { recursive: true });
 const themes = themeRegistry.all(),
-  gallery = Canvas.createCanvas(1600, 1340),
+  gallery = Canvas.createCanvas(1600, 100 + Math.ceil(themes.length / 3) * 630),
   ctx = gallery.getContext("2d");
 ctx.fillStyle = "#e5e0d7";
-ctx.fillRect(0, 0, 1600, 1340);
+ctx.fillRect(0, 0, 1600, gallery.height);
 text(ctx, "CARD THEMES", 24, 42, 26, "#292e34", 1500, true);
 text(
   ctx,
@@ -60,10 +60,10 @@ for (const [i, theme] of themes.entries()) {
       image.attachment as Buffer,
     );
   const x = 24 + (i % 3) * 526,
-    y = 112 + Math.floor(i / 3) * 600;
+    y = 112 + Math.floor(i / 3) * 630;
   text(
     ctx,
-    theme.name + (theme.id === "slate" ? " · DEFAULT" : ""),
+    theme.name + (theme.id === "rose" ? " · DEFAULT" : ""),
     x,
     y,
     24,
@@ -72,7 +72,7 @@ for (const [i, theme] of themes.entries()) {
     true,
   );
   const bitmap = await Canvas.loadImage(rank.attachment as Buffer);
-  ctx.drawImage(bitmap, x, y + 15, 500, 556.25);
+  ctx.drawImage(bitmap, x, y + 15, 500, (bitmap.height / bitmap.width) * 500);
 }
 writeFileSync(`${out}/theme-gallery.png`, gallery.toBuffer("image/png"));
 console.log(`Theme previews saved to ${out}`);

@@ -101,6 +101,16 @@ function fill() {
   $("radius").value = theme.radius;
   $("design").value = theme.background.style;
   $("angle").value = theme.background.angle;
+  $("intensity").value = theme.background.intensity ?? 70;
+  $("intensity-value").textContent = (theme.background.intensity ?? 70) + "%";
+  document
+    .querySelectorAll("[data-design]")
+    .forEach((b) =>
+      b.setAttribute(
+        "aria-pressed",
+        String(b.dataset.design === theme.background.style),
+      ),
+    );
   $("radius-value").textContent = theme.radius + "px";
   $("angle-value").textContent = theme.background.angle + "°";
   for (const k of [...colors, "end"]) {
@@ -115,6 +125,7 @@ function changed() {
   notice("Unsaved changes");
   $("radius-value").textContent = theme.radius + "px";
   $("angle-value").textContent = theme.background.angle + "°";
+  $("intensity-value").textContent = (theme.background.intensity ?? 70) + "%";
   clearTimeout(timer);
   timer = setTimeout(preview, 1200);
 }
@@ -133,8 +144,45 @@ $("angle").addEventListener("input", () => {
 });
 $("design").addEventListener("change", () => {
   theme.background.style = $("design").value;
+  fill();
   changed();
 });
+$("intensity").addEventListener("input", () => {
+  theme.background.intensity = Number($("intensity").value);
+  changed();
+});
+for (const [id, name] of Object.entries({
+  satin: "Satin",
+  circuit: "Circuit",
+  chrome: "Chrome",
+  prism: "Prism",
+  contours: "Contour",
+  orbit: "Orbit",
+  frost: "Frost",
+  aurora: "Soft light",
+  gradient: "Gradient",
+  solid: "Solid",
+})) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "design-swatch";
+  button.dataset.design = id;
+  button.setAttribute("aria-pressed", "false");
+  const image = document.createElement("img");
+  image.src = "/assets/backgrounds/" + id + ".webp";
+  image.alt = "";
+  image.width = 128;
+  image.height = 64;
+  const label = document.createElement("span");
+  label.textContent = name;
+  button.append(image, label);
+  button.addEventListener("click", () => {
+    theme.background.style = id;
+    fill();
+    changed();
+  });
+  $("design-gallery").append(button);
+}
 const palettes = {
   rose: {
     background: "#2c212b",

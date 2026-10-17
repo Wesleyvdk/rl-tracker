@@ -26,7 +26,7 @@ test("existing four-column history upgrades idempotently without inventing strea
  const store=new MmrHistoryStore(db);new MmrHistoryStore(db);
  expect(db.query("SELECT mmr,source_streak FROM mmr_history").get()).toEqual({mmr:1000,source_streak:null});expect(store.bestWinStreaks("epic:p",now)).toEqual({});db.close();
 });
-test("best seen is a maximum, not a sum or inference from MMR, and respects snapshot time",()=>{
+test("best streak is a maximum, not a sum or inference from MMR, and respects snapshot time",()=>{
  const db=new Database(":memory:"),store=new MmrHistoryStore(db),row=ranks()[0];
  for(const [i,streak] of [5,5,-20,7].entries())store.record("epic:p",[{...row,mmr:1000+i*100,streak}],now-(3-i)*hour);
  expect(store.bestWinStreaks("epic:p",now-hour)[row.playlist]).toBe(5);expect(store.bestWinStreaks("epic:p",now)[row.playlist]).toBe(7);
@@ -47,7 +47,7 @@ test("streak history retains existing atomic cache-failure and cached-read seman
  expect(cache.history.bestWinStreaks("epic:p",Date.now())[ranks()[0].playlist]).toBe(8);
  expect(db.query("SELECT COUNT(*) n FROM mmr_history").get()).toEqual({n:1});db.close();
 });
-test("best seen has the documented retained observation window",()=>{
+test("best streak has the documented retained observation window",()=>{
  const db=new Database(":memory:"),store=new MmrHistoryStore(db),row=ranks()[0];
  store.record("p",[{...row,streak:100}],now-91*24*hour);store.record("p",[{...row,streak:2}],now);
  expect(store.bestWinStreaks("p",now)[row.playlist]).toBe(2);db.close();
@@ -73,7 +73,7 @@ test("top25 leaderboard renders bounded local pages including Unicode and null s
  const stats=ranks().map(r=>({...r,icon:"https://invalid.example/must-not-fetch"}));
  const accounts=Array.from({length:26},(_,i)=>({discord_id:String(i),playername:"星 🏆 "+i,stats_data:stats,fetchedAt:now,stale:i%2===0}));
  const images=await generateBoard(accounts,"extra","A long guild ".repeat(20));expect(images).toHaveLength(3);
- for(const image of images){expect(png(image).readUInt32BE(20)).toBeLessThanOrEqual(1480);}
+ for(const image of images){expect(png(image).readUInt32BE(20)).toBeLessThanOrEqual(1540);}
  expect(images[2].description).toContain("25.");
 });
 test("season history keeps all rows/modes across bounded pages and reports oversize explicitly",async()=>{

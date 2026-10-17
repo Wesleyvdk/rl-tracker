@@ -1,11 +1,12 @@
 import Canvas, { type SKRSContext2D } from "@napi-rs/canvas";
 import { fileURLToPath } from "node:url";
 import { getTheme, type ThemeInput } from "./themeRegistry.service";
+import { drawBackgroundArt, mix } from "./backgroundArt.service";
 export const WIDTH = 1280,
   PAD = 32,
   GAP = 20,
   TILE = 280,
-  TOP = 164;
+  TOP = 224;
 export const MUTED = "#9dafc5",
   WHITE = "#f3f6ff";
 if (
@@ -194,56 +195,118 @@ export function createCardStyle(id?: ThemeInput) {
     height: number,
   ) => {
     if (theme.neon) return background(ctx, width, height);
-    const design = theme.backgroundDesign;
-    ctx.fillStyle = colors.background;
-    ctx.fillRect(0, 0, width, height);
-    if (design && design.style !== "solid") {
-      const radians = (design.angle * Math.PI) / 180;
-      const dx = (Math.cos(radians) * width) / 2,
-        dy = (Math.sin(radians) * height) / 2;
-      const gradient = ctx.createLinearGradient(
-        width / 2 - dx,
-        height / 2 - dy,
-        width / 2 + dx,
-        height / 2 + dy,
-      );
-      gradient.addColorStop(0, colors.background);
-      gradient.addColorStop(1, design.end);
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-      if (design.style === "aurora") {
-        for (const [x, y, radius] of [
-          [width * 0.95, height * 0.1, width * 0.8],
-          [width * 0.05, height * 0.85, width * 0.65],
-        ]) {
-          const light = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          light.addColorStop(0, colors.accent + "12");
-          light.addColorStop(1, colors.accent + "00");
-          ctx.fillStyle = light;
-          ctx.fillRect(0, 0, width, height);
-        }
-      }
-      if (design.style === "contours") {
-        ctx.save();
-        ctx.strokeStyle = colors.accent + "0c";
-        ctx.lineWidth = 1;
-        for (let n = 0; n < 16; n++) {
-          ctx.beginPath();
-          ctx.ellipse(
-            width * 1.08,
-            height * -0.12,
-            150 + n * 105,
-            130 + n * 115,
-            0.3,
-            0,
-            Math.PI * 2,
-          );
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
+    drawBackgroundArt(ctx, width, height, theme);
+  };
+  const header = (ctx: SKRSContext2D, width = WIDTH) => {
+    // Local masks protect the identity while leaving the material composition visible.
+    const mask = ctx.createLinearGradient(0, 0, width, 0);
+    mask.addColorStop(0, colors.background + "ef");
+    mask.addColorStop(0.44, colors.background + "bc");
+    mask.addColorStop(0.78, colors.background + "12");
+    mask.addColorStop(1, colors.background + "70");
+    ctx.fillStyle = mask;
+    ctx.fillRect(0, 0, width, 154);
+    ctx.save();
+    for (let y = 154; y < 216; y += 2) {
+      ctx.globalAlpha = (216 - y) / 62;
+      ctx.fillRect(0, y, width, 2);
+    }
+    ctx.restore();
+    ctx.fillStyle = colors.background + "eb";
+    rounded(ctx, 1006, 28, 242, 151, theme.radius);
+    ctx.fill();
+    ctx.fillStyle = colors.accent;
+    ctx.fillRect(PAD, 43, 4, 132);
+    ctx.strokeStyle = colors.accent + "65";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, 198);
+    ctx.lineTo(width - PAD - 80, 198);
+    ctx.lineTo(width - PAD - 64, 182);
+    ctx.lineTo(width - PAD, 182);
+    ctx.stroke();
+    // Printer registration marks are decorative framing, not invented data.
+    ctx.strokeStyle = colors.accent + "aa";
+    for (const x of [PAD, width - PAD]) {
+      ctx.beginPath();
+      ctx.moveTo(x, 15);
+      ctx.lineTo(x, 25);
+      ctx.moveTo(x - 5, 20);
+      ctx.lineTo(x + 5, 20);
+      ctx.stroke();
     }
   };
+  const footer = (ctx: SKRSContext2D, height: number, width = WIDTH) => {
+    ctx.fillStyle = colors.background + "f5";
+    ctx.fillRect(0, height - 58, width, 58);
+    ctx.fillStyle = colors.border;
+    ctx.fillRect(PAD, height - 58, width - PAD * 2, 1);
+  };
+  const surface = (
+    ctx: SKRSContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    color = colors.accent,
+    rank = false,
+  ) => {
+    ctx.save();
+    rounded(ctx, x, y, w, h, theme.radius);
+    ctx.clip();
+    if (rank && !theme.neon) {
+      // The top cap exposes the real canvas artwork; all numbers and plots stay on matte stock.
+      const cap = ctx.createLinearGradient(x, y, x + w, y);
+      cap.addColorStop(0, colors.surface);
+      cap.addColorStop(0.5, colors.surface + "f7");
+      cap.addColorStop(0.76, colors.surface + "91");
+      cap.addColorStop(1, colors.surface + "18");
+      ctx.fillStyle = cap;
+      ctx.fillRect(x, y, w, 100);
+      ctx.fillStyle = colors.surface;
+      ctx.fillRect(x, y + 100, w - 9, h - 100);
+      const blend = ctx.createLinearGradient(x, y + 38, x, y + 100);
+      blend.addColorStop(0, colors.surface + "00");
+      blend.addColorStop(1, colors.surface);
+      ctx.fillStyle = blend;
+      ctx.fillRect(x, y + 38, w - 9, 62);
+      ctx.fillStyle = colors.surface + "95";
+      ctx.fillRect(x + w - 9, y + 100, 9, h - 100);
+      // Rank-label area is always opaque even when long names reach into the artwork.
+      const label = ctx.createLinearGradient(x, y, x + w, y);
+      label.addColorStop(0, colors.surface);
+      label.addColorStop(0.73, colors.surface);
+      label.addColorStop(0.87, colors.surface + "00");
+      label.addColorStop(1, colors.surface + "00");
+      ctx.fillStyle = label;
+      ctx.fillRect(x, y + 45, w, 55);
+    } else {
+      ctx.fillStyle = colors.surface;
+      ctx.fillRect(x, y, w, h);
+    }
+    const strip = ctx.createLinearGradient(x, y, x + w, y);
+    strip.addColorStop(0, color);
+    strip.addColorStop(0.45, color + "50");
+    strip.addColorStop(1, color + "00");
+    ctx.fillStyle = strip;
+    ctx.fillRect(x, y, w, 2);
+    ctx.restore();
+    ctx.strokeStyle = colors.border;
+    ctx.lineWidth = 1;
+    rounded(ctx, x + 0.5, y + 0.5, w - 1, h - 1, theme.radius);
+    ctx.stroke();
+    if (theme.backgroundDesign?.style === "circuit") {
+      ctx.strokeStyle = colors.accent;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x + w - 27, y + 1);
+      ctx.lineTo(x + w - 1, y + 27);
+      ctx.moveTo(x + 1, y + h - 20);
+      ctx.lineTo(x + 20, y + h - 1);
+      ctx.stroke();
+    }
+  };
+
   const themedPill = (
     ctx: SKRSContext2D,
     label: string,
@@ -265,15 +328,11 @@ export function createCardStyle(id?: ThemeInput) {
     h: number,
     color = colors.accent,
   ) => {
-    ctx.fillStyle = colors.surface;
-    rounded(ctx, x, y, w, h, theme.radius);
-    ctx.fill();
-    ctx.strokeStyle = colors.border;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    surface(ctx, x, y, w, h, color);
     ctx.fillStyle = color;
-    ctx.fillRect(x + 1, y + 1, 3, h - 2);
+    ctx.fillRect(x + 1, y + 15, 2, h - 30);
   };
+
   const brand = async (
     ctx: SKRSContext2D,
     x: number,
@@ -313,16 +372,21 @@ export function createCardStyle(id?: ThemeInput) {
     title: string,
     right: string,
   ) => {
-    themedText(ctx, eyebrow, 36, 40, 15, colors.muted, 940, true);
-    themedText(ctx, title, 32, 91, 39, colors.text, 950, true);
-    await brand(ctx, 1025, 42, 223);
-    themedText(ctx, right, 1025, 88, 16, colors.muted, 223);
+    header(ctx);
+    themedText(ctx, eyebrow, 51, 65, 15, colors.muted, 900, true);
+    themedText(ctx, title, 49, 130, 54, colors.text, 880, true);
+    await brand(ctx, 1025, 65, 205, 20);
+    themedText(ctx, right, 1025, 109, 19, colors.muted, 205);
   };
+
   return Object.freeze({
     theme,
     colors,
     text: themedText,
     background: themedBackground,
+    header,
+    footer,
+    surface,
     pill: themedPill,
     panel: themedPanel,
     heading: themedHeading,
