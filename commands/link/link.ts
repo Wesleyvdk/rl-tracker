@@ -2,10 +2,10 @@ import {
   Client,
   ChatInputCommandInteraction,
   SlashCommandBuilder,
-  MessageFlags,
 } from "discord.js";
 import { buildTrackerProfileUrl } from "../../services/trackerProfile.service";
-import { linkAccount, getAccount } from "../../services/database.service";
+import { linkAccount } from "../../services/database.service";
+import { replyStatus, playerLabel } from "../../services/commandReply.service";
 
 export const data = new SlashCommandBuilder()
   .setName("link")
@@ -34,29 +34,31 @@ export async function execute(
   client: Client,
   interaction: ChatInputCommandInteraction,
 ) {
-  const playername = (interaction.options as any).getString("playername");
-  const platform = (interaction.options as any).getString("platform") || "epic";
-  const discordId = interaction.user.id;
-
+  const options = interaction.options as any,
+    profile = buildTrackerProfileUrl(
+      options.getString("platform") || "epic",
+      options.getString("playername"),
+    );
+  if (!profile.ok)
+    return replyStatus(interaction, "Invalid profile", profile.error, "error");
   try {
-    const profile = buildTrackerProfileUrl(platform, playername);
-    if (!profile.ok)
-      return interaction.reply({
-        content: profile.error,
-        flags: MessageFlags.Ephemeral,
-      });
-    linkAccount(discordId, profile.username, profile.platform);
-
-    await interaction.reply({
-      content: `✅ Successfully linked your Discord account to **${playername}** (${platform}). You can now use \`/avgmatches\` and \`/rank\` without typing your name!`,
-      flags: [MessageFlags.Ephemeral],
-    });
+    linkAccount(interaction.user.id, profile.username, profile.platform);
+    return await replyStatus(
+      interaction,
+      "Profile linked",
+      `**${playerLabel(profile.username)}** · ${profile.platform.toUpperCase()}`,
+      "success",
+    );
   } catch (error) {
-    console.error("Error linking account:", error);
-    await interaction.reply({
-      content:
-        "❌ An error occurred while linking your account. Please try again later.",
-      flags: [MessageFlags.Ephemeral],
-    });
+    console.error(
+      "Link command failed:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return replyStatus(
+      interaction,
+      "Couldn't link profile",
+      "Please try again.",
+      "error",
+    ).catch(() => {});
   }
 }

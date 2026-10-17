@@ -28,7 +28,8 @@ export function seasonAverages(seasons: SeasonData[]): AverageStats[] {
   for (const season of seasons)
     for (const [playlist, row] of Object.entries(season.playlists)) {
       const current = stats.get(playlist) || { matches: [], tiers: [] };
-      if (row.matches !== null) current.matches.push(row.matches);
+      if (Number.isSafeInteger(row.matches) && row.matches! >= 0)
+        current.matches.push(row.matches!);
       const tier = ranks.indexOf(row.rank) + 1;
       if (tier > 0) current.tiers.push(tier);
       stats.set(playlist, current);

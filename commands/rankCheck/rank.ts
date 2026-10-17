@@ -1,15 +1,15 @@
 import {
   Client,
   ChatInputCommandInteraction,
-  EmbedBuilder,
   SlashCommandBuilder,
-  MessageFlags,
 } from "discord.js";
 import generateRankCard from "../../services/generateRankCard.service";
 import { profileCache } from "../../services/profile.service";
 import { getAccount, updateStats } from "../../services/database.service";
-import { normalizePlatform } from "../../services/trackerProfile.service";
+import { buildTrackerProfileUrl } from "../../services/trackerProfile.service";
 import { STANDARD_MODES } from "../../services/rankCardModel.service";
+import { replyStatus, imageMessage } from "../../services/commandReply.service";
+
 export const data = new SlashCommandBuilder()
   .setName("rank")
   .setDescription("Replies with your rank!")
@@ -24,92 +24,66 @@ export async function execute(
   client: Client,
   interaction: ChatInputCommandInteraction,
 ) {
-  let playername = (interaction.options as any).getString("playername");
-  let platform = "epic";
-
-  if (!playername) {
-    const account = getAccount(interaction.user.id);
-    if (!account) {
-      return interaction.reply({
-        content:
-          "❌ You haven't linked a Rocket League profile yet! Use `/link` or provide a player name.",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-    playername = account.playername;
-    platform = normalizePlatform(account.platform) || "epic";
-  }
-
-  const safeReply = async (options: any) => {
-    try {
-      return await interaction.editReply({
-        ...options,
-        allowedMentions: { parse: [] },
-      });
-    } catch (e: any) {
-      if (e?.code === 10062) {
-        console.log(`Interaction expired for ${playername} rank request`);
-        return;
-      }
-      throw e;
-    }
-  };
-
+  const supplied = (interaction.options as any).getString("playername");
+  const account = supplied ? null : getAccount(interaction.user.id);
+  if (!supplied && !account)
+    return replyStatus(
+      interaction,
+      "Profile needed",
+      "Use `/link` or enter a player name.",
+    );
+  const profile = buildTrackerProfileUrl(
+    account?.platform || "epic",
+    supplied || account?.playername,
+  );
+  if (!profile.ok)
+    return replyStatus(interaction, "Invalid profile", profile.error, "error");
   try {
     await interaction.deferReply();
-
-    // Check if the user is checking their OWN linked account vs a random string
-    const isLinkedAccount =
-      !!(interaction.options as any).getString("playername") === false;
-    const discordId = interaction.user.id;
-
-    const ranks = await profileCache.get(playername, platform);
-
-    if (!ranks.tableData?.length) {
-      return safeReply({ content: ranks.error });
-    }
-
-    // Passively keep the leaderboard cache warm
-    if (isLinkedAccount && ranks.tableData) {
+    const ranks = await profileCache.get(profile.username, profile.platform);
+    if (!ranks.tableData?.length)
+      return replyStatus(
+        interaction,
+        "Stats unavailable",
+        ranks.failureReason === "profile_not_found"
+          ? "That profile wasn't found."
+          : "Tracker is unavailable. Try again shortly.",
+        "error",
+      );
+    if (account)
       updateStats(
-        discordId,
+        interaction.user.id,
         JSON.stringify(ranks.tableData),
-        {
-          playername,
-          platform,
-        },
+        account,
         ranks.fetchedAt,
       );
-    }
-
-    const playerData = {
-      name: playername,
+    const key = profileCache.key(profile.username, profile.platform),
+      at = ranks.fetchedAt || 0;
+    const image = await generateRankCard({
+      name: profile.username,
+      platform: profile.platform,
       ranks: ranks.tableData,
       rewardLevel: ranks.parsedRewardLevel,
-      platform,
       fetchedAt: ranks.fetchedAt,
       stale: ranks.stale,
+      bestWinStreaks: profileCache.history.bestWinStreaks(key, at),
       history: profileCache.history.read(
-        profileCache.key(playername, platform),
-        [...STANDARD_MODES, ...ranks.tableData.map((row) => row.playlist)],
-        ranks.fetchedAt || 0,
+        key,
+        [...STANDARD_MODES, ...ranks.tableData.map((r) => r.playlist)],
+        at,
       ),
-    };
-
-    const image = await generateRankCard(playerData);
-
-    const embedObject = {
-      title: `${playername}'s rank`,
-      description: `${ranks.stale ? "Cached stats; refresh requested. " : ""}Retrieved ${new Date(ranks.fetchedAt || Date.now()).toISOString()}`,
-      image: {
-        url: `attachment://${image.name}`,
-      },
-    };
-    return safeReply({ embeds: [embedObject], files: [image] });
-  } catch (error) {
-    console.error("Error in rank command:", error);
-    return safeReply({
-      content: `An error occurred while fetching rank for **${playername}**. Please try again later.`,
     });
+    return interaction.editReply(imageMessage([image]));
+  } catch (error) {
+    console.error(
+      "Rank command failed:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return replyStatus(
+      interaction,
+      "Couldn't load ranks",
+      "Please try again shortly.",
+      "error",
+    ).catch(() => {});
   }
 }

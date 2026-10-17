@@ -37,6 +37,7 @@ export interface RankCardInput {
   stale?: boolean;
   history?: MmrHistory;
   preview?: boolean;
+  bestWinStreaks?: Record<string, number>;
 }
 export function rankAppearance(rank: string) {
   if (rank === "Supersonic Legend") return { color: "#eadfff", icon: 22 };
@@ -75,6 +76,7 @@ export function makeRankCardModel(input: RankCardInput, now = Date.now()) {
       mmr: nonnegative(row?.mmr),
       matches: nonnegative(row?.matches),
       streak: Number.isSafeInteger(row?.streak) ? row!.streak : null,
+      bestWinStreak: nonnegative(input.bestWinStreaks?.[playlist]),
       up,
       down,
       progress:

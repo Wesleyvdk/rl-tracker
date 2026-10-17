@@ -26,6 +26,11 @@ export class MmrHistoryStore {
       );
       CREATE INDEX IF NOT EXISTS mmr_history_age ON mmr_history(observed_at);
     `);
+    db.transaction(() => {
+      const columns = db.query("PRAGMA table_info(mmr_history)").all() as {name:string}[];
+      if (!columns.some(column => column.name === "source_streak"))
+        db.exec("ALTER TABLE mmr_history ADD COLUMN source_streak INTEGER");
+    }).immediate();
   }
 
   record(key: string, rows: PlaylistStats[], at: number) {
@@ -41,12 +46,18 @@ export class MmrHistoryStore {
         .query("DELETE FROM mmr_history WHERE profile_key=? AND observed_at=?")
         .run(key, at);
       const insert = this.db.query(
-        "INSERT INTO mmr_history VALUES (?, ?, ?, ?)",
+        "INSERT INTO mmr_history (profile_key,playlist,observed_at,mmr,source_streak) VALUES (?, ?, ?, ?, ?)",
       );
       for (const row of rows) {
         const mmr =
           Number.isSafeInteger(row.mmr) && row.mmr! >= 0 ? row.mmr : null;
-        insert.run(key, row.playlist, at, mmr);
+        insert.run(
+          key,
+          row.playlist,
+          at,
+          mmr,
+          Number.isSafeInteger(row.streak) ? row.streak : null,
+        );
       }
       // Per-profile bound plus a global age limit. Retained rows stay paired with
       // their observation; missing playlists become explicit gaps when read.
@@ -104,6 +115,18 @@ export class MmrHistoryStore {
         })),
       ]),
     );
+  }
+
+  bestWinStreaks(key: string, asOf: number): Record<string, number> {
+    if (!Number.isSafeInteger(asOf) || asOf <= 0) return {};
+    const rows = this.db
+      .query(
+        `SELECT playlist,MAX(CASE WHEN source_streak>0 THEN source_streak ELSE 0 END) AS best
+      FROM mmr_history WHERE profile_key=? AND observed_at BETWEEN ? AND ? AND source_streak IS NOT NULL
+      GROUP BY playlist`,
+      )
+      .all(key, asOf - 90 * DAY, asOf) as { playlist: string; best: number }[];
+    return Object.fromEntries(rows.map((row) => [row.playlist, row.best]));
   }
 }
 

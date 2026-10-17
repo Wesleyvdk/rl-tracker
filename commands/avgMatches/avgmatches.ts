@@ -2,12 +2,14 @@ import {
   Client,
   ChatInputCommandInteraction,
   SlashCommandBuilder,
-  MessageFlags,
 } from "discord.js";
-import generateAverageCard from "../../services/generateAverageCard.service";
+import generateAverageCard, {
+  HistoryCardLimitError,
+} from "../../services/generateAverageCard.service";
 import { getSeasonStatsCached } from "../../services/season.service";
 import { getAccount } from "../../services/database.service";
-import { normalizePlatform } from "../../services/trackerProfile.service";
+import { buildTrackerProfileUrl } from "../../services/trackerProfile.service";
+import { replyStatus, imageMessage } from "../../services/commandReply.service";
 
 export const data = new SlashCommandBuilder()
   .setName("avgmatches")
@@ -51,88 +53,58 @@ export async function execute(
   client: Client,
   interaction: ChatInputCommandInteraction,
 ) {
-  let playername = (interaction.options as any).getString("playername");
-  let platform = (interaction.options as any).getString("platform");
-  const seasons = (interaction.options as any).getInteger("seasons") ?? 0;
-  const competitiveOnly =
-    (interaction.options as any).getBoolean("competitive_only") ?? true;
-
-  if (!playername) {
-    const account = getAccount(interaction.user.id);
-    if (!account) {
-      return interaction.reply({
-        content:
-          "❌ You haven't linked a Rocket League profile yet! Use `/link` or provide a player name.",
-        flags: [MessageFlags.Ephemeral],
-      });
-    }
-    playername = account.playername;
-    // Default to the linked platform if the user didn't specify one in this command call
-    platform = platform || account.platform;
-  }
-
-  // If platform is still null (user didn't specify and no link), default to epic
-  platform = normalizePlatform(platform || "epic") || "epic";
-
-  const safeReply = async (options: any) => {
-    try {
-      return await interaction.editReply(options);
-    } catch (e: any) {
-      if (e?.code === 10062) {
-        console.log(`Interaction expired for ${playername} avgmatches request`);
-        return;
-      }
-      throw e;
-    }
-  };
-
+  const options = interaction.options as any,
+    supplied = options.getString("playername");
+  const account = supplied ? null : getAccount(interaction.user.id);
+  if (!supplied && !account)
+    return replyStatus(
+      interaction,
+      "Profile needed",
+      "Use `/link` or enter a player name.",
+    );
+  const profile = buildTrackerProfileUrl(
+    options.getString("platform") || account?.platform || "epic",
+    supplied || account?.playername,
+  );
+  if (!profile.ok)
+    return replyStatus(interaction, "Invalid profile", profile.error, "error");
   try {
     await interaction.deferReply();
     const stats = await getSeasonStatsCached(
-      playername,
-      platform,
-      seasons,
-      competitiveOnly,
+      profile.username,
+      profile.platform,
+      options.getInteger("seasons") ?? 0,
+      options.getBoolean("competitive_only") ?? true,
     );
-
-    if (stats.seasonData.length === 0) {
-      let reason = `Could not find any season data for **${playername}** on ${platform}.`;
-      if (stats.failureReason === "cloudflare_blocked") {
-        reason = `Tracker temporarily blocked the request for **${playername}** on ${platform}. Please retry in a minute.`;
-      } else if (stats.failureReason === "profile_not_found") {
-        reason = `Profile for **${playername}** on ${platform} was not found. Please verify platform and player ID/name.`;
-      } else if (stats.failureReason === "invalid_profile_input") {
-        reason = `The provided player/platform input is invalid. Please use a valid platform and player ID/name.`;
-      } else if (stats.failureReason === "table_unavailable") {
-        reason = `Profile loaded for **${playername}** on ${platform}, but seasonal stats were unavailable. Please retry shortly.`;
-      }
-      return safeReply({
-        content: reason,
-      });
-    }
-
-    const cardData = {
-      name: playername,
+    if (!stats.seasonData.length)
+      return replyStatus(
+        interaction,
+        "History unavailable",
+        stats.failureReason === "profile_not_found"
+          ? "That profile wasn't found."
+          : "No season history is available. Try again shortly.",
+        "error",
+      );
+    const images = await generateAverageCard({
+      name: profile.username,
       seasonData: stats.seasonData,
       averageStats: stats.averageStats,
-    };
-
-    const image = await generateAverageCard(cardData);
-
-    const embedObject = {
-      title: `${playername}'s Match History`,
-      description: `Analyzed ${stats.seasonData.length} seasons. ${stats.stale ? "Cached history; refresh requested. " : ""}Retrieved ${new Date(stats.fetchedAt || Date.now()).toISOString()}`,
-      image: {
-        url: `attachment://${image.name}`,
-      },
-      color: 0x2ecc71,
-    };
-
-    return safeReply({ embeds: [embedObject], files: [image] });
-  } catch (error) {
-    console.error("Error in avgmatches command:", error);
-    return safeReply({
-      content: `An error occurred while fetching match history for **${playername}**. Please try again later.`,
+      fetchedAt: stats.fetchedAt,
+      stale: stats.stale,
     });
+    return interaction.editReply(imageMessage(images));
+  } catch (error) {
+    console.error(
+      "Season command failed:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return replyStatus(
+      interaction,
+      "Couldn't load history",
+      error instanceof HistoryCardLimitError
+        ? error.message
+        : "Please try again shortly.",
+      "error",
+    ).catch(() => {});
   }
 }

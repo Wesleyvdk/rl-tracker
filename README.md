@@ -25,16 +25,20 @@ For direct host execution, install Chromium and set `PUPPETEER_EXECUTABLE_PATH` 
 
 ## Commands and caching
 
-- `/link` and `/unlink` manage the user's linked platform/profile.
+- `/link` and `/unlink` manage the user's linked platform/profile with compact private status embeds. Errors use the same styling.
 - `/rank` returns a cached snapshot immediately when present, with retrieval time. Stale snapshots trigger background refreshes. A new profile waits for one bounded retrieval.
-- `/leaderboard` uses cached snapshots of linked users in the current server and starts missing/stale refreshes in the background. It does not wait for every profile to scrape.
-- `/avgmatches` uses cached season history. Missing match counts remain unavailable; they are excluded from averages instead of treated as zero. Zero matches remains a valid observation.
+- `/leaderboard` uses cached snapshots of linked users in the current server and starts missing/stale refreshes in the background. It ranks by the highest MMR among the selected modes, includes real zero MMR, and shows the top 25 players across pages of ten. Each row retains its own snapshot time and cached badge.
+- `/avgmatches` uses cached season history. Four modes and fourteen seasons fit per image; additional pages retain the remaining modes and seasons. Requests exceeding Discord's ten-image limit ask for fewer seasons or competitive-only. Missing match counts remain unavailable; they are excluded from averages instead of treated as zero. Zero matches remains a valid observation. Partial totals have a `+` marker; the per-season total average includes only complete totals. On pages showing a subset of modes, `ALL MODES` labels the total across the full requested mode set.
+
+Leaderboard and season cards share the rank card's local fonts, rank icons, colors and panels. `bun run scripts/previewCommands.ts` produces clearly marked synthetic previews under `benchmark/results/command-card-style/` without database writes or Discord messages.
 
 ### Rank card appearance and history
 
 `/rank` renders all seven standard modes on one image, with extra named modes retained when reported. Rank-colored panels, bundled rank icons and Inter typography, large MMR figures, streak badges and source-provided division distances keep the main information readable. An amber cached badge and an observation timestamp travel with the image. Rendering uses local assets and makes no network requests.
 
-Each panel includes a subtle background curve and a readable graph of **locally observed MMR snapshots**. The change and peak refer to the displayed observations; they are not last-match changes or lifetime/season records. Graphs use independent scales with visible observed ranges. Points use real observation timestamps; missing MMR/modes and breaks longer than six hours interrupt the line. A single point is shown as a dot, and no history shows a waiting state.
+Each panel includes a subtle background curve and a readable graph of **locally observed MMR snapshots**. The change refers to the displayed observations; it is not a last-match change. Graphs use independent scales with visible observed ranges. Points use real observation timestamps; missing MMR/modes and breaks longer than six hours interrupt the line. A single point is shown as a dot, and no history shows a waiting state.
+
+`BEST SEEN` is the largest positive **source-reported current win streak** stored for that mode in retained observations at or before the displayed snapshot. It is not a verified lifetime record: snapshots can miss streaks between refreshes, and retention is limited to 90 days and 1,024 snapshots per profile. Repeated reports are not added together, and MMR increases are never counted as wins. No valid streak report shows `—`; valid reports containing only losses/zero show `0W`. Existing cached rows have unknown historical streaks until new successful fetches record them. Old source values are not backfilled. The current-streak badge remains separate.
 
 History starts with new successful fetches after this update. Existing latest snapshots are not turned into invented past history. Cached reads and failed refreshes add no observations. Cache and history writes are atomic; a missing mode remains a gap. Graphs select at most 256 observations from the preceding 30 days, ending at the displayed snapshot, so a background refresh cannot add later timestamps to an older card. Storage retains at most 1,024 snapshots per profile and removes observations older than 90 days as new snapshots arrive. History follows the platform/profile identity, preserving username case, independently of Discord links.
 
@@ -75,8 +79,10 @@ Backups use SQLite `VACUUM INTO` and run `PRAGMA integrity_check`. Copy them out
 
 Before replacing a running container, retain its image tag and create a backup. Stop the bot before restoring into an empty database volume. Restore `database.sqlite` with permissions readable/writable by the container user, run an integrity check, and start exactly one instance. Existing cache tables are additive; no user data is dropped by migration.
 
+The command-card update adds nullable `source_streak` to `mmr_history` under a serialized transaction. Older four-column `INSERT INTO mmr_history VALUES (...)` statements cannot write this upgraded table. On this VPS, `rl-tracker:compatible-before-command-style-20261017` preserves the previous UI with its history insert patched to name the original four columns; this rollback image can use the upgraded database, leaving new streak fields null. Returning to an unpatched older image requires stopping the bot and restoring the pre-upgrade database backup, which discards observations written since that backup. Do not roll back to that original image alone.
+
 ## Verification and remaining trial
 
-`bun test` covers the public table fixture, extra playlists, source-provided thresholds, missing/zero values, cache preservation, duplicate requests, queue priority/failure recovery, season averages, and profile/season-label normalization. `bun run typecheck` checks TypeScript.
+`bun test` covers the public table fixture, extra playlists, source-provided thresholds, missing/zero values, cache preservation, duplicate requests, queue priority/failure recovery, season averages, profile/season-label normalization, streak migration/retention/as-of isolation, paged image bounds, and isolated mocked execution of every command. `bun run typecheck` checks TypeScript. These tests do not send Discord messages.
 
 A live retrieval probe verified seven ranked playlists from the VPS after the parser change. Longer-term availability, platform coverage, full season-history switching, and Discord command rendering still need observation during the rollout. The benchmark's raw HTML and local databases are ignored by Git.

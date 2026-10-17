@@ -1,133 +1,158 @@
 import Canvas from "@napi-rs/canvas";
 import { AttachmentBuilder } from "discord.js";
+import {
+  WIDTH,
+  PAD,
+  WHITE,
+  MUTED,
+  background,
+  heading,
+  panel,
+  text,
+  pill,
+  date,
+  icon,
+  shortMode,
+} from "./cardTheme.service";
+import { rankAppearance, nonnegative } from "./rankCardModel.service";
+import {
+  leaderboardModel,
+  type BoardAccount,
+} from "./leaderboardModel.service";
 
-const rankColors: { [key: string]: string } = {
-    "Supersonic Legend": "#ffffff",
-    "Grand Champion III": "#ff004c",
-    "Grand Champion II": "#ff004c",
-    "Grand Champion I": "#ff004c",
-    "Champion III": "#a500ff",
-    "Champion II": "#a500ff",
-    "Champion I": "#a500ff",
-    "Diamond III": "#00bfff",
-    "Diamond II": "#00bfff",
-    "Diamond I": "#00bfff",
-    "Platinum III": "#00ff00",
-    "Platinum II": "#00ff00",
-    "Platinum I": "#00ff00",
-    "Gold III": "#ffd700",
-    "Gold II": "#ffd700",
-    "Gold I": "#ffd700",
-    "Silver III": "#c0c0c0",
-    "Silver II": "#c0c0c0",
-    "Silver I": "#c0c0c0",
-    "Bronze III": "#cd7f32",
-    "Bronze II": "#cd7f32",
-    "Bronze I": "#cd7f32",
-};
-
-export default async function generateLeaderboardCard(
-    validAccounts: any[],
-    modeChoice: "competitive" | "extra",
-    guildName: string
-): Promise<any> {
-    const width = 1200;
-    // Dynamic height based on number of players
-    const height = 150 + (validAccounts.length * 200);
-    const canvas = Canvas.createCanvas(width, height);
-    const ctx = canvas.getContext("2d");
-
-    // Background color
-    ctx.fillStyle = "#1a1a1d";
-    ctx.fillRect(0, 0, width, height);
-
-    // Title
-    ctx.fillStyle = "#3a3a40";
-    ctx.fillRect(0, 0, width, 100);
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 40px Arial";
-
-    const title = modeChoice === "competitive"
-        ? "🏆 Competitive Leaderboard"
-        : "🏆 Extra Modes Leaderboard";
-
-    ctx.fillText(`${title} - ${guildName}`, 30, 65);
-
-    const targetPlaylists = modeChoice === "competitive"
-        ? ["Duel 1v1", "Doubles 2v2", "Standard 3v3"]
-        : ["Hoops", "Rumble", "Dropshot", "Snow Day"];
-
-    for (let i = 0; i < validAccounts.length; i++) {
-        const account = validAccounts[i];
-        const y = 130 + (i * 200);
-
-        // Player Row Background
-        ctx.fillStyle = "#252529";
-        ctx.fillRect(30, y, width - 60, 180);
-
-        // Rank Number
-        ctx.fillStyle = "#f39c12";
-        ctx.font = "bold 40px Arial";
-        ctx.fillText(`#${i + 1}`, 50, y + 100);
-
-        // Player Name
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 32px Arial";
-        ctx.fillText(account.playername, 120, y + 100);
-
-        // Draw columns for the playlists
-        for (let pIndex = 0; pIndex < targetPlaylists.length; pIndex++) {
-            const playlistName = targetPlaylists[pIndex];
-            // Find playlist data from parsed stats JSON
-            let playlistData = null;
-            if (account.stats_data && Array.isArray(account.stats_data)) {
-                playlistData = account.stats_data.find((p: any) => p.playlist && p.playlist.includes(playlistName));
-            }
-
-            const colX = 400 + (pIndex * 220);
-
-            // Playlist Title
-            ctx.fillStyle = "#aaa";
-            ctx.font = "bold 18px Arial";
-            ctx.fillText(playlistName, colX, y + 40);
-
-            if (playlistData && playlistData.mmr) {
-                // Rank Icon
-                if (playlistData.icon) {
-                    try {
-                        const icon = await Canvas.loadImage(playlistData.icon);
-                        ctx.drawImage(icon, colX, y + 55, 60, 60);
-                    } catch (e) {
-                        // skip broken image
-                    }
-                }
-
-                // Rank Name
-                ctx.fillStyle = rankColors[playlistData.rank] || "#f39c12";
-                ctx.font = "bold 16px Arial";
-                ctx.fillText(playlistData.rank, colX + 70, y + 75);
-
-                // MMR
-                ctx.fillStyle = "#fff";
-                ctx.font = "16px Arial";
-                ctx.fillText(`${playlistData.mmr} MMR`, colX + 70, y + 100);
-
-                // Division
-                ctx.fillStyle = "#888";
-                ctx.font = "14px Arial";
-                ctx.fillText(playlistData.division || "", colX + 70, y + 120);
-            } else {
-                ctx.fillStyle = "#555";
-                ctx.font = "italic 16px Arial";
-                ctx.fillText("Unranked", colX, y + 90);
-            }
+export default async function generateLeaderboardCards(
+  accounts: BoardAccount[],
+  mode: "competitive" | "extra",
+  guild: string,
+  preview = false,
+): Promise<AttachmentBuilder[]> {
+  const model = leaderboardModel(accounts, mode),
+    pages = Math.max(1, Math.ceil(model.rows.length / 10)),
+    images: AttachmentBuilder[] = [];
+  for (let page = 0; page < pages; page++) {
+    const rows = model.rows.slice(page * 10, page * 10 + 10),
+      height = 220 + Math.max(1, rows.length) * 126;
+    const canvas = Canvas.createCanvas(WIDTH, height),
+      ctx = canvas.getContext("2d");
+    background(ctx, WIDTH, height);
+    heading(
+      ctx,
+      `${preview ? "DESIGN PREVIEW · " : ""}${mode === "competitive" ? "COMPETITIVE" : "EXTRA MODES"} · LEADERBOARD`,
+      guild,
+      `${page + 1} / ${pages}`,
+    );
+    text(ctx, "HIGHEST SELECTED-MODE MMR", PAD + 6, 124, 14, MUTED, 800, true);
+    const start = 350,
+      col = (WIDTH - PAD - start) / model.modes.length;
+    model.modes.forEach((name, i) =>
+      text(
+        ctx,
+        shortMode(name),
+        start + i * col + 8,
+        155,
+        16,
+        MUTED,
+        col - 16,
+        true,
+      ),
+    );
+    for (const [i, row] of rows.entries()) {
+      const y = 174 + i * 126,
+        place = page * 10 + i + 1,
+        color =
+          place === 1
+            ? "#f3cb72"
+            : place === 2
+              ? "#c2d0e2"
+              : place === 3
+                ? "#c69070"
+                : "#9bb7ff";
+      panel(ctx, PAD, y, WIDTH - PAD * 2, 110, color);
+      text(
+        ctx,
+        String(place).padStart(2, "0"),
+        PAD + 18,
+        y + 45,
+        25,
+        color,
+        45,
+        true,
+      );
+      text(ctx, row.playername, PAD + 77, y + 39, 22, WHITE, 220, true);
+      const at = row.fetchedAt;
+      const fresh =
+        Number.isSafeInteger(at) && at! > 0 && at! <= Date.now() + 60000;
+      const stale = row.stale || !fresh || Date.now() - at! > 3600000;
+      text(
+        ctx,
+        fresh ? `${stale ? "CACHED · " : ""}${date(at!)}` : "TIME UNKNOWN",
+        PAD + 77,
+        y + 68,
+        12,
+        stale ? "#f3cb72" : MUTED,
+        225,
+      );
+      text(
+        ctx,
+        `${row.score.toLocaleString("en-US")} MMR`,
+        PAD + 77,
+        y + 93,
+        15,
+        color,
+        220,
+        true,
+      );
+      for (const [j, rank] of row.selected.entries()) {
+        const x = start + j * col + 8,
+          mmr = nonnegative(rank?.mmr),
+          look = rankAppearance(rank?.rank || "");
+        if (mmr !== null && look.icon !== null) {
+          const badge = await icon(look.icon);
+          if (badge) ctx.drawImage(badge, x, y + 20, 36, 36);
         }
+        text(
+          ctx,
+          mmr === null ? "—" : mmr.toLocaleString("en-US"),
+          x + 46,
+          y + 46,
+          27,
+          WHITE,
+          col - 62,
+          true,
+        );
+        text(
+          ctx,
+          rank?.rank || "Unavailable",
+          x,
+          y + 76,
+          14,
+          look.color,
+          col - 20,
+        );
+        text(ctx, rank?.division || "—", x, y + 96, 12, MUTED, col - 20);
+      }
     }
-
-    // Save the image
-    const attachment = new AttachmentBuilder(canvas.toBuffer("image/png"), {
-        name: "leaderboard.png",
+    if (!rows.length)
+      text(ctx, "No ranks available", PAD + 30, 230, 25, MUTED, 1000);
+    text(
+      ctx,
+      `TOP ${model.rows.length}${model.total > 25 ? ` OF ${model.total}` : ""}`,
+      PAD,
+      height - 17,
+      14,
+      MUTED,
+      1100,
+    );
+    const image = new AttachmentBuilder(canvas.toBuffer("image/png"), {
+      name: `leaderboard-${page + 1}.png`,
     });
-
-    return attachment;
+    image.setDescription(
+      `${guild}: ${mode} leaderboard, page ${page + 1}/${pages}, ordered by highest selected-mode MMR. ${rows.map((r, i) => `${page * 10 + i + 1}. ${r.playername}: ${r.score} MMR`).join("; ")}`.slice(
+        0,
+        1024,
+      ),
+    );
+    images.push(image);
+  }
+  return images;
 }
