@@ -71,7 +71,7 @@ function material(
     a = rgb(t.colors.accent),
     e = rgb(t.backgroundDesign!.end),
     data = c.createImageData(w, h),
-    power = (t.backgroundDesign!.intensity ?? 70) / 100;
+    power = 1;
   const angle = (t.backgroundDesign!.angle * Math.PI) / 180,
     cs = Math.cos(angle),
     sn = Math.sin(angle);
@@ -549,7 +549,7 @@ function cosmos(
       ]);
     }
   }
-  const x = w * 0.81,
+  const x = w * 0.72,
     y = w * 0.16,
     r = w * 0.12,
     g = c.createRadialGradient(x - r * 0.45, y - r * 0.5, 0, x, y, r);
@@ -608,21 +608,26 @@ export function drawBackgroundArt(
       g.addColorStop(1, design.end);
       c.fillStyle = g;
       c.fillRect(0, 0, w, h);
+      // putImageData deliberately ignores globalAlpha. Render material at full strength
+      // in a temporary layer, then blend the whole artwork once, including cloud pixels.
+      const art = Canvas.createCanvas(w, h),
+        ac = art.getContext("2d");
+      ac.drawImage(layer, 0, 0);
+      if (design.style === "chrome" || design.style === "satin") {
+        material(ac, w, h, theme, design.style === "chrome");
+      }
+      if (design.style === "circuit") circuit(ac, w, h, theme);
+      if (design.style === "prism" || design.style === "frost")
+        facets(ac, w, h, theme, design.style === "frost");
+      if (design.style === "contours") contours(ac, w, h, theme);
+      if (design.style === "orbit") cosmos(ac, w, h, theme);
+      if (design.style === "aurora") {
+        glow(ac, w * 0.85, h * 0.1, w * 0.7, theme.colors.accent, 0.5);
+        glow(ac, w * 0.1, h * 0.8, w * 0.6, theme.colors.accent, 0.3);
+      }
       c.save();
       c.globalAlpha = (design.intensity ?? 70) / 100;
-      if (design.style === "chrome" || design.style === "satin") {
-        c.globalAlpha = 1;
-        material(c, w, h, theme, design.style === "chrome");
-      }
-      if (design.style === "circuit") circuit(c, w, h, theme);
-      if (design.style === "prism" || design.style === "frost")
-        facets(c, w, h, theme, design.style === "frost");
-      if (design.style === "contours") contours(c, w, h, theme);
-      if (design.style === "orbit") cosmos(c, w, h, theme);
-      if (design.style === "aurora") {
-        glow(c, w * 0.85, h * 0.1, w * 0.7, theme.colors.accent, 0.5);
-        glow(c, w * 0.1, h * 0.8, w * 0.6, theme.colors.accent, 0.3);
-      }
+      c.drawImage(art, 0, 0);
       c.restore();
     }
     if (layers.size >= MAX_LAYERS) layers.delete(layers.keys().next().value!);

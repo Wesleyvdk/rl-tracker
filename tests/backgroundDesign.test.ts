@@ -169,3 +169,35 @@ test("new material revisions and preexisting editor sessions survive reopening w
     db.close();
   }
 });
+
+test("every artwork-strength slider blends the entire material at zero, half and full strength", () => {
+  const render = (style: any, intensity: number) => {
+    const t = editorCardTheme({
+        ...defaultEditorTheme(),
+        background: { style, end: "#201d2a", angle: 125, intensity },
+      }),
+      c = Canvas.createCanvas(128, 192);
+    drawBackgroundArt(c.getContext("2d"), 128, 192, t);
+    return c.getContext("2d").getImageData(0, 0, 128, 192).data;
+  };
+  const baseline = render("gradient", 100);
+  for (const style of BACKGROUND_STYLES.filter(
+    (v) => !["solid", "gradient"].includes(v),
+  )) {
+    const zero = render(style, 0),
+      half = render(style, 50),
+      full = render(style, 100);
+    expect(zero).toEqual(baseline);
+    let change = 0,
+      maxError = 0;
+    for (let i = 0; i < zero.length; i++) {
+      change += Math.abs(full[i] - zero[i]);
+      maxError = Math.max(
+        maxError,
+        Math.abs(half[i] - (zero[i] + full[i]) / 2),
+      );
+    }
+    expect(change).toBeGreaterThan(1000);
+    expect(maxError).toBeLessThanOrEqual(1.5);
+  }
+});

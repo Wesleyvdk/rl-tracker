@@ -205,7 +205,13 @@ export function createCardStyle(id?: ThemeInput) {
     mask.addColorStop(0.78, colors.background + "12");
     mask.addColorStop(1, colors.background + "70");
     ctx.fillStyle = mask;
-    ctx.fillRect(0, 0, width, 199);
+    ctx.fillRect(0, 0, width, 154);
+    ctx.save();
+    for (let y = 154; y < 216; y += 2) {
+      ctx.globalAlpha = (216 - y) / 62;
+      ctx.fillRect(0, y, width, 2);
+    }
+    ctx.restore();
     ctx.fillStyle = colors.background + "eb";
     rounded(ctx, 1006, 28, 242, 151, theme.radius);
     ctx.fill();
