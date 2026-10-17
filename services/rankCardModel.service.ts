@@ -1,5 +1,6 @@
 import type { PlaylistStats } from "./profileParser.service";
 import { summarizeHistory, type MmrHistory } from "./mmrHistory.service";
+import type { ThemeInput } from "./themeRegistry.service";
 
 export const STANDARD_MODES = [
   "Ranked Duel 1v1",
@@ -21,13 +22,13 @@ const families = [
   "Grand Champion",
 ];
 const colors = [
-  "#c69070",
-  "#c2d0e2",
-  "#f3cb72",
-  "#6cddcf",
-  "#6abaff",
-  "#bc9aff",
-  "#ff7b9c",
+  "#c9a58c",
+  "#bfc5cd",
+  "#d8bc83",
+  "#91c1ba",
+  "#8eafd0",
+  "#b8a2ce",
+  "#d49aa6",
 ];
 export interface RankCardInput {
   name: string;
@@ -39,7 +40,7 @@ export interface RankCardInput {
   history?: MmrHistory;
   preview?: boolean;
   bestWinStreaks?: Record<string, number>;
-  theme?: string;
+  theme?: ThemeInput;
 }
 export function rankAppearance(rank: string) {
   if (rank === "Supersonic Legend") return { color: "#eadfff", icon: 22 };

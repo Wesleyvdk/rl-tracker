@@ -12,8 +12,12 @@ import {readFileSync} from "node:fs";
 import {PermissionFlagsBits,PermissionsBitField} from "discord.js";
 const themeDb=new Database(":memory:");
 themeDb.exec("CREATE TABLE users(discord_id TEXT PRIMARY KEY)");
+let authManage=false;
+mock.module(fileURLToPath(new URL("../../services/guildAuthorization.service.ts",import.meta.url)),()=>({guildActor:async()=>({id:"user",manage:authManage,roles:[]}),isBotOperator:async()=>false}));
+mock.module(fileURLToPath(new URL("../../services/organization.service.ts",import.meta.url)),()=>({organizations:{can:(_g:any,a:any)=>a.manage}}));
 const guildId="100000000000000001",rscGuild="100000000000000002";
 const preferences=new ThemePreferences(themeDb,new ThemeRegistry(JSON.parse(readFileSync(new URL("../../themes/catalog.json",import.meta.url),"utf8")),{version:1,organizations:[{id:"rsc",guildIds:[rscGuild]}]}));
+preferences.registry.attachCustom({approved:()=>true,get:()=>undefined,allowed:()=>false,available:()=>[]});
 mock.module(fileURLToPath(new URL("../../services/theme.service.ts",import.meta.url)),()=>({themePreferences:preferences}));
 
 const modulePath = (name: string) =>
@@ -76,6 +80,7 @@ function reset() {
   season = { seasonData: [{ season: "Season 1", playlists: {} }], averageStats: [], fetchedAt: 12345, stale: true };
 }
 function interaction(options: Record<string, unknown> = {}, inGuild = true) {
+  authManage=Boolean(options.manage);
   const replies: any[][] = [];
   const i: any = {
     user: { id: "user" }, deferred: false, replied: false,
@@ -159,13 +164,13 @@ await scenario(async()=>{account={playername:"P",platform:"epic"};const r=intera
 await scenario(async()=>{const r=interaction({subcommand:"preview",style:"jade"});await theme.execute(null as any,r.i);assert.equal(r.replies[0][1].flags,64);assert.equal(payload(r).files.length,1);assert.equal(rendered[0][1].theme,"jade");assert.equal(rendered[0][1].preview,true);assert.equal(preferences.userChoice("user"),null);});
 await scenario(async()=>{account={playername:"P",platform:"epic"};preferences.setGuild(guildId,"jade");preferences.setUser("user","rose",guildId);const r=interaction({subcommand:"reset"});await theme.execute(null as any,r.i);assert.equal(title(r),"Theme reset");assert.equal(preferences.resolve("user",guildId),"jade");});
 await scenario(async()=>{const r=interaction({subcommand:"server",style:"dune",manage:true},false);await theme.execute(null as any,r.i);assert.equal(title(r),"Server only");});
-await scenario(async()=>{const r=interaction({subcommand:"server",style:"dune"});await theme.execute(null as any,r.i);assert.equal(title(r),"Manage Server required");assert.equal(preferences.guildTheme(guildId),"slate");});
+await scenario(async()=>{const r=interaction({subcommand:"server",style:"dune"});await theme.execute(null as any,r.i);assert.equal(title(r),"Theme editing required");assert.equal(preferences.guildTheme(guildId),"rose");});
 await scenario(async()=>{const r=interaction({subcommand:"server",style:"dune",manage:true});await theme.execute(null as any,r.i);assert.equal(title(r),"Server theme updated");assert.equal(preferences.guildTheme(guildId),"dune");});
 await scenario(async()=>{const r=interaction({subcommand:"server",style:"rsc",manage:true});await theme.execute(null as any,r.i);assert.equal(title(r),"Theme unavailable");});
-await scenario(async()=>{account={playername:"P",platform:"epic"};const r=interaction({subcommand:"set",style:"rsc",guildId:rscGuild});await theme.execute(null as any,r.i);assert.equal(title(r),"Theme updated");assert.equal(preferences.resolve("user",rscGuild),"rsc");assert.equal(preferences.resolve("user",guildId),"slate");});
+await scenario(async()=>{account={playername:"P",platform:"epic"};const r=interaction({subcommand:"set",style:"rsc",guildId:rscGuild});await theme.execute(null as any,r.i);assert.equal(title(r),"Theme updated");assert.equal(preferences.resolve("user",rscGuild),"rsc");assert.equal(preferences.resolve("user",guildId),"rose");});
 await scenario(async()=>{for(const id of [guildId,rscGuild]){const r=interaction({query:"r",guildId:id});let values:any[]=[];r.i.respond=async(v:any[])=>{values=v;};await theme.autocomplete(r.i);assert(values.length<=25);assert.equal(values.some(v=>v.value==="rsc"),id===rscGuild);}});
 await scenario(async()=>{preferences.setGuild(guildId,"jade");preferences.setUser("user","dune",guildId);accounts=[{discord_id:"user",playername:"P",platform:"epic"}];cached={tableData:[row],fetchedAt:12345};const r=interaction({mode:"competitive"});await board.execute(null as any,r.i);assert.equal(rendered[0][5],"jade");});
-await scenario(async()=>{preferences.setGuild(guildId,"jade");const r=interaction({subcommand:"server",manage:true});await theme.execute(null as any,r.i);assert.equal(title(r),"Server theme updated");assert.equal(preferences.guildTheme(guildId),"slate");});
+await scenario(async()=>{preferences.setGuild(guildId,"jade");const r=interaction({subcommand:"server",manage:true});await theme.execute(null as any,r.i);assert.equal(title(r),"Server theme updated");assert.equal(preferences.guildTheme(guildId),"rose");});
 assert.equal(errors.length, 4);
 cardPager.dispose();
 themeDb.close();

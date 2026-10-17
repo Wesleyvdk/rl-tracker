@@ -15,7 +15,7 @@ Use Bun 1.3.8 (the Docker runtime). Run `bun install --frozen-lockfile`. Copy `.
 `bun run deploy` registers commands explicitly. Set `TEST_GUILD_ID` to target a test server; otherwise registration is global. Startup never registers commands. Use a separate Discord application for test-server command/message checks; automated tests do not send Discord messages.
 
 ```sh
-bun test
+bun test ./tests ./services
 bun run typecheck
 bun run deploy
 bun start
@@ -25,7 +25,7 @@ For direct host execution, install Chromium and set `PUPPETEER_EXECUTABLE_PATH` 
 
 ## Commands and caching
 
-- `/theme list`, `/theme preview`, `/theme set` and `/theme reset` manage linked-account card styles. Slate is the default; Dune, Jade, Rose and the earlier Neon are also available. `/theme server` requires Manage Server and sets a shared server/leaderboard default. Organization packs and server bindings are described in [docs/themes.md](docs/themes.md).
+- `/theme list`, `/theme preview`, `/theme set` and `/theme reset` manage linked-account card styles. Rose is the default; Slate, Dune, Jade and the earlier Neon are also available. Rank-family colors stay consistent across designs. `/theme server` requires Manage Server or a delegated theme role and sets a shared server/leaderboard default. Organization packs and server bindings are described in [docs/themes.md](docs/themes.md).
 
 - `/link` and `/unlink` manage the user's linked platform/profile with compact private status embeds. Errors use the same styling.
 - `/rank` returns a cached snapshot immediately when present, with retrieval time. Stale snapshots trigger background refreshes. A new profile waits for one bounded retrieval.
@@ -71,7 +71,7 @@ docker compose ps
 docker compose logs --tail=50 bot
 ```
 
-The Compose project is explicitly named `rl-tracker` and retains the existing `rl-tracker_sqlite_data` volume. AP-Gaming uses a separate Compose project and volume. No public ports are exposed. Compose applies a 1 GB memory limit, one CPU, log rotation, and a restart policy. Do not run two production instances using the same Discord token.
+The Compose project is explicitly named `rl-tracker` and retains the existing `rl-tracker_sqlite_data` volume. AP-Gaming uses a separate Compose project and volume. No host ports are exposed. The optional web editor joins the existing reverse proxy network on container port 8790. Compose applies a 1 GB memory limit, one CPU, log rotation, and a restart policy. Do not run two production instances using the same Discord token.
 
 Health checks verify a recent heartbeat and a connected Discord client. `/tmp/rl-tracker-health.json` also records the last refresh attempt and last successful profile snapshot, so a connected bot can be distinguished from working data retrieval.
 
@@ -96,3 +96,7 @@ The command-card update adds nullable `source_streak` to `mmr_history` under a s
 `bun test ./tests ./services` scopes test discovery to maintained test roots. The optional `bun run scripts/verifySeasonBrowser.ts` gate uses locally fulfilled browser pages/requests to check delayed DOM commits, identical season tables, CORS preflights and timed-out document closure. Run it in Docker with networking disabled and a writable temporary home; it never starts Discord or opens the application database.
 
 A live retrieval probe verified seven ranked playlists from the VPS after the parser change. Longer-term availability, platform coverage, full season-history switching, and Discord command rendering still need observation during the rollout. The benchmark's raw HTML and local databases are ignored by Git.
+
+## Organization customization
+
+Approved servers can use `/theme editor` to open a private 24-hour browser editor and publish their own background/brand designs immediately. `/organization apply` requests access; admission is controlled by the bot application's owner. `/config` lets server managers delegate separate settings/theme roles and revoke editor links. All image generation and storage stay on the VPS. See [the organization editor workflow and deployment](docs/themes.md#organization-editor).

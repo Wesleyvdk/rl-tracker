@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-export const DEFAULT_THEME = "slate";
+export const DEFAULT_THEME = "rose";
 export interface ThemeColors {
   background: string;
   surface: string;
@@ -23,6 +23,11 @@ export interface CardTheme {
   logo?: string;
   radius: number;
   neon: boolean;
+  backgroundDesign?: Readonly<{
+    style: "solid" | "gradient" | "aurora" | "contours";
+    end: string;
+    angle: number;
+  }>;
   colors: Readonly<ThemeColors>;
 }
 const colorKeys: (keyof ThemeColors)[] = [
@@ -41,6 +46,15 @@ const slug = /^[a-z][a-z0-9-]{0,39}$/;
 export class ThemeRegistry {
   private themes = new Map<string, Readonly<CardTheme>>();
   private organizations = new Map<string, string>();
+  private custom?: {
+    approved(guild: string): boolean;
+    get(id: string): Readonly<CardTheme> | undefined;
+    allowed(id: string, guild?: string | null): boolean;
+    available(guild?: string | null): Readonly<CardTheme>[];
+  };
+  attachCustom(provider: NonNullable<ThemeRegistry["custom"]>) {
+    this.custom = provider;
+  }
   constructor(
     catalog: unknown,
     bindings: unknown = { version: 1, organizations: [] },
@@ -113,12 +127,13 @@ export class ThemeRegistry {
     }
   }
   get(id: string) {
-    return this.themes.get(id);
+    return this.themes.get(id) ?? this.custom?.get(id);
   }
   all() {
     return [...this.themes.values()];
   }
   allowed(id: string, guild?: string | null) {
+    if (!this.themes.has(id)) return this.custom?.allowed(id, guild) ?? false;
     const theme = this.get(id);
     return (
       !!theme &&
@@ -126,11 +141,15 @@ export class ThemeRegistry {
         (!!guild &&
           typeof theme.organization === "string" &&
           this.organizations.has(guild) &&
+          this.custom?.approved(guild) === true &&
           this.organizations.get(guild) === theme.organization))
     );
   }
   available(guild?: string | null) {
-    return this.all().filter((t) => this.allowed(t.id, guild));
+    return [
+      ...this.all().filter((t) => this.allowed(t.id, guild)),
+      ...(this.custom?.available(guild) ?? []),
+    ];
   }
 }
 const catalog = JSON.parse(
@@ -140,7 +159,9 @@ const bindings = process.env.ORGANIZATION_THEMES_PATH
   ? JSON.parse(readFileSync(process.env.ORGANIZATION_THEMES_PATH, "utf8"))
   : { version: 1, organizations: [] };
 export const themeRegistry = new ThemeRegistry(catalog, bindings);
-export function getTheme(id?: string): Readonly<CardTheme> {
+export type ThemeInput = string | Readonly<CardTheme>;
+export function getTheme(id?: ThemeInput): Readonly<CardTheme> {
+  if (id && typeof id !== "string") return id;
   return (
     themeRegistry.get(id || DEFAULT_THEME) || themeRegistry.get(DEFAULT_THEME)!
   );

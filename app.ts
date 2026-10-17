@@ -8,10 +8,28 @@ import { shutdownBrowsers } from "./services/browser.service";
 import { db } from "./services/database.service";
 import { statusMessage, replyStatus } from "./services/commandReply.service";
 import { cardPager } from "./services/cardPager.service";
+import { createThemeEditorHandler } from "./services/themeEditorWeb.service";
+import { organizations } from "./services/organization.service";
+import { guildActor } from "./services/guildAuthorization.service";
 
 const commands = await loadCommands();
 if (!process.env.BOT_TOKEN) throw new Error("BOT_TOKEN is required");
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const editor = process.env.THEME_EDITOR_BASE_URL
+  ? Bun.serve({
+      hostname: process.env.THEME_EDITOR_HOST || "0.0.0.0",
+      port: Number(process.env.THEME_EDITOR_PORT || 8790),
+      maxRequestBodySize: 16384,
+      fetch: createThemeEditorHandler({
+        baseUrl: process.env.THEME_EDITOR_BASE_URL,
+        clientId: process.env.CLIENTID || "",
+        clientSecret: process.env.CLIENTSECRET || "",
+        store: organizations,
+        authorize: (guild, user, signal) =>
+          guildActor(client, guild, user, signal),
+      }),
+    })
+  : undefined;
 const healthPath = process.env.HEALTH_PATH || "/tmp/rl-tracker-health.json";
 let refreshing = false;
 let lastRefreshAt: number | null = null;
@@ -104,6 +122,7 @@ async function shutdown() {
   job.stop();
   clearInterval(heartbeat);
   cardPager.dispose();
+  await editor?.stop(true);
   await client.destroy();
   await shutdownBrowsers();
   rmSync(healthPath, { force: true });
@@ -116,6 +135,7 @@ try {
   await client.login(process.env.BOT_TOKEN);
 } catch (error) {
   job.stop();
+  await editor?.stop(true);
   clearInterval(heartbeat);
   db.close();
   throw error;

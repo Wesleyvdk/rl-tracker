@@ -1,4 +1,5 @@
 import Canvas from "@napi-rs/canvas";
+import type { ThemeInput } from "./themeRegistry.service";
 import { AttachmentBuilder } from "discord.js";
 import type { SeasonData, AverageStats, SeasonStatsResult } from "../types";
 import { averageModel } from "./averageCardModel.service";
@@ -20,7 +21,7 @@ export interface AverageCardData {
   preview?: boolean;
   partial?: boolean;
   coverage?: SeasonStatsResult["coverage"];
-  theme?: string;
+  theme?: ThemeInput;
 }
 export class HistoryCardLimitError extends Error {}
 export default async function generateAverageCards(

@@ -64,7 +64,7 @@
     {
       "id": "rose",
       "name": "Rose",
-      "description": "Dusty plum, parchment and restrained rose",
+      "description": "Dusty plum with layered, quiet gradients",
       "scope": "public",
       "radius": 8,
       "neon": false,
@@ -79,6 +79,11 @@
         "positive": "#b6d0bb",
         "negative": "#f0b3b8",
         "warning": "#e5c4a0"
+      },
+      "backgroundDesign": {
+        "style": "aurora",
+        "end": "#201d2a",
+        "angle": 125
       }
     },
     {
