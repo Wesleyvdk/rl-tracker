@@ -2,6 +2,8 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags,
+  ApplicationIntegrationType,
+  InteractionContextType,
   type Client,
   type ChatInputCommandInteraction,
   type AutocompleteInteraction,
@@ -19,6 +21,15 @@ import {
 export const data = new SlashCommandBuilder()
   .setName("theme")
   .setDescription("Choose your card style")
+  .setIntegrationTypes(
+    ApplicationIntegrationType.GuildInstall,
+    ApplicationIntegrationType.UserInstall,
+  )
+  .setContexts(
+    InteractionContextType.Guild,
+    InteractionContextType.BotDM,
+    InteractionContextType.PrivateChannel,
+  )
   .addSubcommand((s) =>
     s.setName("list").setDescription("Browse available card themes"),
   )

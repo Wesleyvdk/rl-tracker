@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { REST, Routes } from "discord.js";
 import { loadCommands } from "./services/commandLoader";
+import { preserveRegistrationSettings } from "./services/commandRegistration.service";
 
 export async function deployCommands() {
   if (!process.env.BOT_TOKEN || !process.env.CLIENTID)
@@ -13,7 +14,14 @@ export async function deployCommands() {
         process.env.TEST_GUILD_ID,
       )
     : Routes.applicationCommands(process.env.CLIENTID);
-  await rest.put(route, { body: commands.map((command) => command.data) });
+  // Do not overwrite registration if the existing settings cannot be read.
+  const current = await rest.get(route);
+  const body = preserveRegistrationSettings(
+    commands.map((command) => command.data),
+    current,
+    !process.env.TEST_GUILD_ID,
+  );
+  await rest.put(route, { body });
   console.log(`Registered ${commands.length} commands.`);
 }
 if (import.meta.main)
