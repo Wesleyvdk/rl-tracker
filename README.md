@@ -25,7 +25,7 @@ For direct host execution, install Chromium and set `PUPPETEER_EXECUTABLE_PATH` 
 
 ## Commands and caching
 
-- `/theme list`, `/theme preview`, `/theme set` and `/theme reset` manage linked-account card styles. Rose is the default; Slate, Dune and the earlier Neon remain available, alongside Circuit, Chrome, Prism, Contour, Orbit and Frost backgrounds. Rank-family colors stay consistent across designs. `/theme server` requires Manage Server or a delegated theme role and sets a shared server/leaderboard default. Organization packs and server bindings are described in [docs/themes.md](docs/themes.md).
+- `/theme list`, `/theme preview`, `/theme set` and `/theme reset` manage linked-account card styles. Rose is the default; Slate, Dune and the earlier Neon remain available, alongside Circuit, Chrome, Prism, Contour, Orbit and Frost backgrounds. Rank-family colors stay consistent across designs. `/theme server` requires Manage Server or a delegated theme role and sets the server default. Personal choices take priority for rank, history and leaderboard requests. Organization packs and server bindings are described in [docs/themes.md](docs/themes.md).
 
 - `/link` and `/unlink` manage the user's linked platform/profile with compact private status embeds. Errors use the same styling.
 - `/rank` returns a cached snapshot immediately when present, with retrieval time. Stale snapshots trigger background refreshes. A new profile waits for one bounded retrieval.

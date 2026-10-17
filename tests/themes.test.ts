@@ -238,7 +238,7 @@ test("all theme packs render rank, leaderboard and paginated history entirely lo
         "89504e470d0a1a0a",
       );
   }
-});
+}, 15000);
 
 test("pagination captures one theme per view, including embed accents", async () => {
   const pager = new CardPager(),

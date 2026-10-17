@@ -32,10 +32,46 @@ let theme,
   busy = false,
   kind = "rank",
   appliedRevision = -1,
+  draftPublished = false,
   timer,
   sequence = 0,
   previewUrl,
-  controller;
+  controller,
+  previewState = "pending",
+  previewTheme = "";
+function refreshActions() {
+  $("save").disabled = busy || !theme;
+  $("apply").disabled =
+    busy ||
+    !theme ||
+    dirty ||
+    !revision ||
+    draftPublished ||
+    previewState !== "ready" ||
+    previewTheme !== JSON.stringify(theme);
+}
+function previewStatus(state, message) {
+  previewState = state;
+  $("preview-status").dataset.state = state;
+  $("preview-status").textContent = message;
+  $("preview-status").classList.toggle("error", state === "error");
+  $("preview").classList.toggle("stale", state !== "ready");
+  $("preview").setAttribute("aria-busy", String(state === "pending"));
+  if (state === "error") {
+    $("preview").hidden = true;
+    $("preview-placeholder").hidden = false;
+    $("preview-placeholder").textContent = message;
+  }
+  if (state === "pending" && $("preview").hidden)
+    $("preview-placeholder").textContent = message;
+  refreshActions();
+}
+function invalidatePreview() {
+  ++sequence;
+  controller?.abort();
+  previewTheme = "";
+  previewStatus("pending", "Updating preview…");
+}
 function notice(message, error = false) {
   $("notice").textContent = message;
   $("notice").classList.toggle("error", error);
@@ -121,13 +157,13 @@ function fill() {
 }
 function changed() {
   dirty = true;
-  $("apply").disabled = true;
-  notice("Unsaved changes");
+  invalidatePreview();
+  notice("Unsaved changes. Save draft before applying.");
   $("radius-value").textContent = theme.radius + "px";
   $("angle-value").textContent = theme.background.angle + "°";
   $("intensity-value").textContent = (theme.background.intensity ?? 70) + "%";
   clearTimeout(timer);
-  timer = setTimeout(preview, 1200);
+  timer = setTimeout(preview, 600);
 }
 for (const key of ["name", "brand"])
   $(key).addEventListener("input", () => {
@@ -219,6 +255,7 @@ $("base").addEventListener("change", () => {
 document.querySelectorAll("[data-kind]").forEach((b) =>
   b.addEventListener("click", () => {
     kind = b.dataset.kind;
+    invalidatePreview();
     document
       .querySelectorAll("[data-kind]")
       .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
@@ -228,15 +265,17 @@ document.querySelectorAll("[data-kind]").forEach((b) =>
 );
 async function preview() {
   if (!theme) return;
-  const n = ++sequence;
+  const n = ++sequence,
+    snapshot = JSON.stringify(theme);
   controller?.abort();
   controller = new AbortController();
-  $("preview").classList.add("busy");
+  previewStatus("pending", "Updating preview…");
+  let nextUrl;
   try {
     const r = await fetch("/api/preview", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
-      body: JSON.stringify({ theme, kind }),
+      body: JSON.stringify({ theme: JSON.parse(snapshot), kind }),
       signal: controller.signal,
     });
     if (!r.ok) {
@@ -244,23 +283,30 @@ async function preview() {
       throw new Error(e.error || "Preview unavailable.");
     }
     const blob = await r.blob();
-    if (n !== sequence) return;
+    if (n !== sequence || snapshot !== JSON.stringify(theme)) return;
+    nextUrl = URL.createObjectURL(blob);
+    const decoded = new Image();
+    decoded.src = nextUrl;
+    await decoded.decode();
+    if (n !== sequence || snapshot !== JSON.stringify(theme)) return;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    previewUrl = URL.createObjectURL(blob);
+    previewUrl = nextUrl;
+    nextUrl = undefined;
     $("preview").src = previewUrl;
     $("preview").hidden = false;
     $("preview-placeholder").hidden = true;
+    previewTheme = snapshot;
+    previewStatus("ready", "Preview up to date");
   } catch (e) {
-    if (e.name !== "AbortError" && n === sequence) notice(e.message, true);
+    if (e.name !== "AbortError" && n === sequence)
+      previewStatus("error", "Preview unavailable: " + e.message);
   } finally {
-    if (n === sequence) $("preview").classList.remove("busy");
+    if (nextUrl) URL.revokeObjectURL(nextUrl);
   }
 }
 function lock(value) {
   busy = value;
-  $("save").disabled = value;
-  $("apply").disabled =
-    value || dirty || !revision || appliedRevision === revision;
+  refreshActions();
 }
 $("theme-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -271,13 +317,16 @@ $("theme-form").addEventListener("submit", async (event) => {
   try {
     const r = await api("/api/save", { revision, theme });
     revision = r.revision;
+    draftPublished = false;
     dirty = JSON.stringify(theme) !== saved;
+    await preview();
     notice(
       dirty
         ? "Draft saved. New changes remain unsaved."
-        : "Draft saved. Ready to apply.",
+        : previewState === "ready"
+          ? "Draft saved. Ready to apply."
+          : "Draft saved. Update the preview before applying.",
     );
-    await preview();
   } catch (e) {
     notice(e.message, true);
   } finally {
@@ -285,12 +334,27 @@ $("theme-form").addEventListener("submit", async (event) => {
   }
 });
 $("apply").addEventListener("click", async () => {
-  if (busy || dirty || !revision) return;
+  if (
+    busy ||
+    dirty ||
+    draftPublished ||
+    !revision ||
+    previewState !== "ready" ||
+    previewTheme !== JSON.stringify(theme)
+  )
+    return;
   lock(true);
+  const applyingRevision = revision,
+    applyingTheme = JSON.stringify(theme);
   try {
-    await api("/api/apply", { revision });
-    appliedRevision = revision;
-    notice("Applied as this server’s default theme.");
+    await api("/api/apply", { revision: applyingRevision });
+    appliedRevision = applyingRevision;
+    draftPublished = true;
+    notice(
+      dirty || JSON.stringify(theme) !== applyingTheme
+        ? "Saved draft applied. New changes remain unsaved."
+        : "Applied as this server’s default theme.",
+    );
   } catch (e) {
     notice(e.message, true);
   } finally {
@@ -309,6 +373,8 @@ async function start() {
     const r = await api("/api/theme");
     theme = r.theme;
     revision = r.revision;
+    appliedRevision = r.appliedRevision ?? -1;
+    draftPublished = !!r.draftPublished;
     csrf = r.csrf;
     fill();
     $("expiry").textContent =
@@ -320,7 +386,13 @@ async function start() {
     $("theme-form").inert = false;
     lock(false);
     notice(
-      revision ? "Draft loaded." : "Choose your colors and save your draft.",
+      draftPublished
+        ? appliedRevision === revision
+          ? "This saved draft is already the server default."
+          : "This draft was published previously. Save a new draft to apply again."
+        : revision
+          ? "Draft loaded."
+          : "Choose your colors and save your draft.",
     );
     await preview();
   } catch (e) {
