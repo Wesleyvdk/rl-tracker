@@ -3,6 +3,7 @@ import {
   ApplicationIntegrationType,
   InteractionContextType,
   MessageFlags,
+  escapeMarkdown,
   type Client,
   type ChatInputCommandInteraction,
 } from "discord.js";
@@ -51,6 +52,17 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand((s) =>
     s
+      .setName("inspect")
+      .setDescription("Read an organization application (bot owner)")
+      .addStringOption((o) =>
+        o
+          .setName("server")
+          .setDescription("Discord server ID")
+          .setRequired(true),
+      ),
+  )
+  .addSubcommand((s) =>
+    s
       .setName("review")
       .setDescription("Approve or revoke organization access (bot owner)")
       .addStringOption((o) =>
@@ -79,7 +91,7 @@ export async function execute(
   try {
     if (!interaction.guildId) throw new Error("Use this command in a server.");
     const action = interaction.options.getSubcommand();
-    if (["review", "pending"].includes(action)) {
+    if (["review", "pending", "inspect"].includes(action)) {
       if (!(await isBotOperator(client, interaction.user.id)))
         throw new Error(
           "Only the bot application owner can review organization access.",
@@ -97,11 +109,26 @@ export async function execute(
               .join("\n") || "No pending applications.",
           ),
         );
-      const guild = interaction.options.getString("server", true),
-        status = interaction.options.getString("decision", true) as
-          | "approved"
-          | "denied"
-          | "revoked";
+      const guild = interaction.options.getString("server", true);
+      if (action === "inspect") {
+        const application = organizations.application(guild) as any;
+        if (!application)
+          throw new Error("No application exists for that server.");
+        const payload = statusMessage(
+          "Organization application",
+          `Server: ${guild} · **${application.status}**`,
+        );
+        payload.embeds[0].addFields(
+          { name: "Organization", value: escapeMarkdown(application.name) },
+          { name: "Website", value: escapeMarkdown(application.website) },
+          { name: "Requested by", value: application.requested_by },
+        );
+        return interaction.editReply(payload);
+      }
+      const status = interaction.options.getString("decision", true) as
+        | "approved"
+        | "denied"
+        | "revoked";
       if (!["approved", "denied", "revoked"].includes(status))
         throw new Error("Choose a valid decision.");
       organizations.review(guild, interaction.user.id, status);

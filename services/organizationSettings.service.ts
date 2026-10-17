@@ -72,7 +72,7 @@ export class OrganizationSettings {
   application(guild: string) {
     return this.db
       .query(
-        "SELECT guild_id,name,website,status,updated_at FROM organization_access WHERE guild_id=?",
+        "SELECT guild_id,name,website,requested_by,status,updated_at FROM organization_access WHERE guild_id=?",
       )
       .get(guild);
   }

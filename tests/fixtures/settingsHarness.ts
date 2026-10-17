@@ -158,7 +158,18 @@ assert.match(
 );
 assert.match((await run(org, "status")).description, /approved/);
 assert.match((await run(org, "pending")).description, /Only the bot/);
+assert.match(
+  (await run(org, "inspect", { server: guild })).description,
+  /Only the bot/,
+);
 operator = true;
+const inspected = await run(org, "inspect", { server: guild });
+assert.equal(inspected.title, "Organization application");
+assert(
+  inspected.fields.some(
+    (f: any) => f.name === "Website" && f.value === "https://example.org",
+  ),
+);
 assert.equal(
   (await run(org, "pending")).description,
   "No pending applications.",
