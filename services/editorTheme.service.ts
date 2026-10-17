@@ -4,7 +4,6 @@ import {
   type CardTheme,
   type ThemeColors,
 } from "./themeRegistry.service";
-import { contrast } from "./cardTheme.service";
 import {
   validBackground,
   type BackgroundDesign,
@@ -76,25 +75,6 @@ export function validateEditorTheme(value: unknown): EditorTheme {
     throw new EditorInputError(
       "Use a name, a brand label, valid colors and a supported background.",
     );
-  for (const fg of [
-    "text",
-    "muted",
-    "accent",
-    "positive",
-    "negative",
-    "warning",
-  ] as const) {
-    for (const bg of [
-      ...[v.colors.background, v.colors.surface, v.colors.surfaceAlt],
-      ...(v.background.style === "solid" ? [] : [v.background.end]),
-    ]) {
-      // Reserve a little headroom for subtle background art.
-      if (contrast(v.colors[fg], bg) < 4.7)
-        throw new EditorInputError(
-          `${fg}: choose a lighter or darker color for readable text (contrast 4.7:1).`,
-        );
-    }
-  }
   return JSON.parse(JSON.stringify(v));
 }
 export function editorCardTheme(

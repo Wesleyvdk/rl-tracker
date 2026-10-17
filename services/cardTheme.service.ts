@@ -1,7 +1,9 @@
 import Canvas, { type SKRSContext2D } from "@napi-rs/canvas";
 import { fileURLToPath } from "node:url";
 import { getTheme, type ThemeInput } from "./themeRegistry.service";
-import { drawBackgroundArt, mix } from "./backgroundArt.service";
+import { drawBackgroundArt } from "./backgroundArt.service";
+import { readableColor, textInk, rgbLuminance } from "./colorContrast.service";
+export { luminance, contrast } from "./colorContrast.service";
 export const WIDTH = 1280,
   PAD = 32,
   GAP = 20,
@@ -54,9 +56,9 @@ export function text(
   color = WHITE,
   width = 1000,
   bold = false,
+  autoContrast = false,
 ) {
   ctx.font = `${bold ? "bold " : ""}${size}px Inter, "Noto CJK", "Noto Emoji"`;
-  ctx.fillStyle = color;
   const chars = [
     ...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(
       value,
@@ -70,6 +72,65 @@ export function text(
       chars.pop();
     shown = chars.join("") + "…";
   }
+  if (autoContrast && shown) {
+    const metrics = ctx.measureText(shown),
+      left = Math.max(
+        0,
+        Math.floor(Math.min(x, x - metrics.actualBoundingBoxLeft)) - 1,
+      ),
+      top = Math.max(0, Math.floor(y - metrics.actualBoundingBoxAscent) - 1),
+      w =
+        Math.min(
+          ctx.canvas.width,
+          Math.ceil(
+            x + Math.max(metrics.actualBoundingBoxRight, metrics.width),
+          ) + 1,
+        ) - left,
+      h =
+        Math.min(
+          ctx.canvas.height,
+          Math.ceil(y + metrics.actualBoundingBoxDescent) + 1,
+        ) - top;
+    if (w > 0 && h > 0) {
+      const pixels = ctx.getImageData(left, top, w, h).data;
+      let low = Infinity,
+        high = -Infinity,
+        lo = 0,
+        hi = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const l = rgbLuminance(pixels[i], pixels[i + 1], pixels[i + 2]);
+        if (l < low) {
+          low = l;
+          lo = i;
+        }
+        if (l > high) {
+          high = l;
+          hi = i;
+        }
+      }
+      const samples = [
+        lo,
+        (Math.floor(h / 2) * w + Math.floor(w / 2)) * 4,
+        hi,
+      ].map(
+        (i) =>
+          "#" +
+          [pixels[i], pixels[i + 1], pixels[i + 2]]
+            .map((v) => v.toString(16).padStart(2, "0"))
+            .join(""),
+      );
+      const ink = textInk(color, samples);
+      color = ink.color;
+      if (ink.backing) {
+        ctx.save();
+        ctx.fillStyle = ink.backing;
+        rounded(ctx, left - 2, top - 2, w + 4, h + 4, 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+  ctx.fillStyle = color;
   ctx.fillText(shown, x, y);
 }
 export function pill(
@@ -188,7 +249,7 @@ export function createCardStyle(id?: ThemeInput) {
     color = colors.text,
     width = 1000,
     bold = false,
-  ) => text(ctx, value, x, y, size, color, width, bold);
+  ) => text(ctx, value, x, y, size, color, width, bold, true);
   const themedBackground = (
     ctx: SKRSContext2D,
     width: number,
@@ -396,36 +457,6 @@ export function createCardStyle(id?: ThemeInput) {
   });
 }
 
-export function luminance(hex: string) {
-  const v = hex
-    .slice(1)
-    .match(/../g)!
-    .map((x) => parseInt(x, 16) / 255)
-    .map((x) => (x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4));
-  return v[0] * 0.2126 + v[1] * 0.7152 + v[2] * 0.0722;
-}
-export function contrast(a: string, b: string) {
-  const x = luminance(a),
-    y = luminance(b);
-  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
-}
 export function readableRankColor(color: string, surface: string) {
-  const rgb = color
-    .slice(1)
-    .match(/../g)!
-    .map((x) => parseInt(x, 16));
-  const target = luminance(surface) > 0.35 ? 0 : 255;
-  for (let n = 0; n <= 20; n++) {
-    const adjusted =
-      "#" +
-      rgb
-        .map((x) =>
-          Math.round(x + ((target - x) * n) / 20)
-            .toString(16)
-            .padStart(2, "0"),
-        )
-        .join("");
-    if (contrast(adjusted, surface) >= 4.5) return adjusted;
-  }
-  return target === 0 ? "#000000" : "#ffffff";
+  return readableColor(color, surface);
 }

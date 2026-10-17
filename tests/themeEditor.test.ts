@@ -143,7 +143,7 @@ test("draft CAS and immutable published IDs preserve old cards and cross-guild o
     db.close();
   }
 });
-test("design tokens reject code/URLs, bad bounds and unreadable palettes", () => {
+test("design tokens reject code/URLs and bad bounds", () => {
   expect(validateEditorTheme(defaultEditorTheme()).base).toBe("rose");
   for (const mutate of [
     (v: any) => (v.brand = "<script>"),
@@ -151,7 +151,6 @@ test("design tokens reject code/URLs, bad bounds and unreadable palettes", () =>
     (v: any) => (v.background.style = "url(foo)"),
     (v: any) => (v.background.end = "red"),
     (v: any) => (v.radius = 100),
-    (v: any) => (v.colors.text = v.colors.surface),
     (v: any) => (v.colors.accent = "javascript:x"),
     (v: any) => (v.name = "a\nname"),
   ]) {
@@ -543,6 +542,46 @@ test("packaged organization themes require the same approved entitlement as cust
     expect(f.registry.allowed("rsc", guild)).toBe(false);
     expect(f.prefs.guildTheme(guild)).toBe("rose");
     expect(f.registry.available(guild).some((t) => t.id === "rsc")).toBe(false);
+  } finally {
+    f.db.close();
+  }
+});
+
+test("arbitrary palettes preview, save and apply unchanged with per-surface ink and persistent applied state", async () => {
+  const f = await webFixture();
+  try {
+    const t = defaultEditorTheme();
+    Object.assign(t.colors, {
+      background: "#000000",
+      surface: "#ffffff",
+      surfaceAlt: "#777777",
+      text: "#ffffff",
+      muted: "#777777",
+      accent: "#ff00aa",
+    });
+    t.background = {
+      style: "frost",
+      end: "#ffffff",
+      angle: 125,
+      intensity: 90,
+    };
+    for (const kind of ["rank", "leaderboard", "history"]) {
+      const r = await f.post("/api/preview", { theme: t, kind });
+      expect(r.status).toBe(200);
+      const image = Buffer.from(await r.arrayBuffer());
+      expect(image.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+    }
+    const saved = await f.post("/api/save", { revision: 0, theme: t });
+    expect(saved.status).toBe(200);
+    expect(((await saved.json()) as any).theme).toEqual(t);
+    const applied = await f.post("/api/apply", { revision: 1 });
+    expect(applied.status).toBe(200);
+    expect(f.store.draft(guild).theme).toEqual(t);
+    expect(f.registry.get(f.prefs.guildTheme(guild))?.colors).toEqual(t.colors);
+    const reloaded = await f.request("/api/theme", { headers: f.headers });
+    const body = (await reloaded.json()) as any;
+    expect(body.theme).toEqual(t);
+    expect(body.appliedRevision).toBe(1);
   } finally {
     f.db.close();
   }

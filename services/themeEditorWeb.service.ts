@@ -436,8 +436,16 @@ export function createThemeEditorHandler(options: EditorWebOptions) {
           );
         if (path === "/api/theme" && req.method === "GET") {
           const link = await authorize(session.link_hash, session.user_id);
+          const draft = store.draft(link.guild_id),
+            active = store.db
+              .query("SELECT theme_id FROM guild_themes WHERE guild_id=?")
+              .get(link.guild_id) as { theme_id: string } | null;
           return json({
-            ...store.draft(link.guild_id),
+            ...draft,
+            appliedRevision:
+              active?.theme_id === `custom-${link.guild_id}-${draft.revision}`
+                ? draft.revision
+                : -1,
             csrf: session.csrf,
             expiresAt: link.expires_at,
           });

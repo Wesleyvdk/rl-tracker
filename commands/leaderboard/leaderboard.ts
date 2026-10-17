@@ -84,7 +84,10 @@ export async function execute(
         "No ranks yet",
         "Profiles are refreshing. Try again shortly.",
       );
-    const theme = themePreferences.guildTheme(interaction.guildId);
+    const theme = themePreferences.resolve(
+      interaction.user.id,
+      interaction.guildId,
+    );
     const images = await generateLeaderboardCard(
       members,
       mode,
