@@ -11,10 +11,14 @@ import { cardPager } from "./services/cardPager.service";
 import { createThemeEditorHandler } from "./services/themeEditorWeb.service";
 import { organizations } from "./services/organization.service";
 import { guildActor } from "./services/guildAuthorization.service";
+import { botPresence } from "./services/botIdentity.service";
 
 const commands = await loadCommands();
 if (!process.env.BOT_TOKEN) throw new Error("BOT_TOKEN is required");
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds],
+  presence: botPresence(),
+});
 const editor = process.env.THEME_EDITOR_BASE_URL
   ? Bun.serve({
       hostname: process.env.THEME_EDITOR_HOST || "0.0.0.0",
@@ -54,6 +58,15 @@ const heartbeat = setInterval(
         at: Date.now(),
         lastRefreshAttemptAt: lastRefreshAt,
         refreshing,
+        presence: {
+          status: client.user?.presence.status,
+          activities: client.user?.presence.activities.map(
+            ({ name, type }) => ({
+              name,
+              type,
+            }),
+          ),
+        },
         lastSuccessfulProfileAt: (
           db.query("SELECT MAX(fetched_at) AS at FROM profile_cache").get() as {
             at: number | null;
