@@ -1,7 +1,10 @@
 import { ActivityType, type PresenceData } from "discord.js";
 
-export const botDescription =
-  "Your Rocket League climb, right in Discord. Check ranks, MMR trends, win streaks and season history. Compare server leaderboards and make your stats your own with personal and organization themes. By Aylian Studios.";
+export const botDescription = `by Aylian Studios
+https://aylian-studios.com/
+
+for support:
+https://discord.gg/4NqvbCPbQV`;
 
 export const botTags = [
   "Rocket League",
