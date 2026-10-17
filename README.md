@@ -23,6 +23,12 @@ bun start
 
 For direct host execution, install Chromium and set `PUPPETEER_EXECUTABLE_PATH` to its path. Docker includes it.
 
+### Discord profile and activity
+
+The bot appears online with **Watching Rocket League ranks • /rank**, including after a restart or gateway reconnect. The activity, public description and discovery tags live in `services/botIdentity.service.ts`. The description covers ranks, MMR trends, observed win streaks, season history, server leaderboards and personal/organization themes, with Aylian Studios attribution.
+
+Run `bun run profile` to preview the managed description/tags, then `bun run profile --apply` to publish them to this Discord application. The script checks that the token belongs to `CLIENTID`, updates only those two fields when needed and verifies the result. Startup never edits the public application profile. The application name, avatar, install settings and OAuth callback stay under separate control while a final name is being chosen.
+
 ## Commands and caching
 
 - `/theme list`, `/theme preview`, `/theme set` and `/theme reset` manage linked-account card styles. Rose is the default; Slate, Dune and the earlier Neon remain available, alongside Circuit, Chrome, Prism, Contour, Orbit and Frost backgrounds. Rank-family colors stay consistent across designs. `/theme server` requires Manage Server or a delegated theme role and sets the server default. Personal choices take priority for rank, history and leaderboard requests. Organization packs and server bindings are described in [docs/themes.md](docs/themes.md).
