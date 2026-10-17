@@ -25,11 +25,19 @@ const catalog = () =>
   );
 const guild = "123456789012345678",
   otherGuild = "223456789012345678";
-const registry = () =>
-  new ThemeRegistry(catalog(), {
+const registry = () => {
+  const r = new ThemeRegistry(catalog(), {
     version: 1,
     organizations: [{ id: "rsc", guildIds: [guild] }],
   });
+  r.attachCustom({
+    approved: (g) => g === guild,
+    get: () => undefined,
+    allowed: () => false,
+    available: () => [],
+  });
+  return r;
+};
 function store() {
   const db = new Database(":memory:");
   db.exec(

@@ -17,6 +17,7 @@ mock.module(fileURLToPath(new URL("../../services/guildAuthorization.service.ts"
 mock.module(fileURLToPath(new URL("../../services/organization.service.ts",import.meta.url)),()=>({organizations:{can:(_g:any,a:any)=>a.manage}}));
 const guildId="100000000000000001",rscGuild="100000000000000002";
 const preferences=new ThemePreferences(themeDb,new ThemeRegistry(JSON.parse(readFileSync(new URL("../../themes/catalog.json",import.meta.url),"utf8")),{version:1,organizations:[{id:"rsc",guildIds:[rscGuild]}]}));
+preferences.registry.attachCustom({approved:()=>true,get:()=>undefined,allowed:()=>false,available:()=>[]});
 mock.module(fileURLToPath(new URL("../../services/theme.service.ts",import.meta.url)),()=>({themePreferences:preferences}));
 
 const modulePath = (name: string) =>

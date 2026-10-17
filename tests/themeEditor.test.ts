@@ -33,6 +33,7 @@ function fixture(file = ":memory:") {
     JSON.parse(
       readFileSync(new URL("../themes/catalog.json", import.meta.url), "utf8"),
     ),
+    { version: 1, organizations: [{ id: "rsc", guildIds: [guild] }] },
   );
   const prefs = new ThemePreferences(db, registry);
   let now = Date.now();
@@ -527,6 +528,21 @@ test("hanging authorization is cancelled and cannot later save a draft", async (
     release({ id: user, manage: true, roles: [] });
     await Promise.resolve();
     expect(f.store.draft(guild).revision).toBe(0);
+  } finally {
+    f.db.close();
+  }
+});
+
+test("packaged organization themes require the same approved entitlement as custom designs", () => {
+  const f = fixture();
+  try {
+    expect(f.registry.allowed("rsc", guild)).toBe(true);
+    expect(f.registry.allowed("rsc", other)).toBe(false);
+    f.prefs.setGuild(guild, "rsc");
+    f.store.review(guild, user, "revoked");
+    expect(f.registry.allowed("rsc", guild)).toBe(false);
+    expect(f.prefs.guildTheme(guild)).toBe("rose");
+    expect(f.registry.available(guild).some((t) => t.id === "rsc")).toBe(false);
   } finally {
     f.db.close();
   }

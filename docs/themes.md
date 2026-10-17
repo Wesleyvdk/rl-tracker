@@ -9,7 +9,7 @@ Rose is the default, with a subtle layered gradient background. Slate, Dune, Jad
 ## Add an organization
 
 1. Add a definition to `themes/catalog.json`: unique slug, name, description, `scope: "organization"`, organization slug, ten six-digit color tokens, radius, optional brand text and packaged logo. Use `themes/catalog.json`'s RSC entry as the template. Put an optional PNG/WebP under `assets/themes/<organization>/` and retain its source attribution. The renderer never downloads assets. New themes use existing layout primitives; a new visual primitive belongs in `createCardStyle`, not in organization-specific command branches.
-2. Copy `config/organization-themes.example.json` to a deployment-owned file. Set the actual Discord server IDs for that organization and set `ORGANIZATION_THEMES_PATH` to its container path. A server can belong to only one organization. Rebuild/restart the bot with that local config mounted read-only. Autocomplete discovers available theme IDs at runtime; adding a preset needs no command-schema update.
+2. Copy `config/organization-themes.example.json` to a deployment-owned file. Approve each server through the organization application workflow below. Set the actual Discord server IDs for that organization and set `ORGANIZATION_THEMES_PATH` to its container path. A server can belong to only one organization. Rebuild/restart the bot with that local config mounted read-only. Autocomplete discovers available theme IDs at runtime; adding a preset needs no command-schema update.
 
 For Docker, a local override can mount the deployment config:
 
@@ -22,7 +22,7 @@ services:
       - ./organization-themes.json:/run/rl-themes/organizations.json:ro
 ```
 
-Server admins may select themes only from the public catalog or their configured organization. They cannot claim another organization by supplying an ID. Invalid configuration fails startup; unknown/deleted stored IDs fall back to inheritance. Preset commands accept only registered IDs. The approved organization editor accepts validated design tokens, never remote assets, CSS or scripts.
+Server admins may select themes only from the public catalog or their configured, approved organization. Packaged organization themes and published custom revisions share the same admission/revocation check. They cannot claim another organization by supplying an ID. Invalid configuration fails startup; unknown/deleted stored IDs fall back to inheritance. Preset commands accept only registered IDs. The approved organization editor accepts validated design tokens, never remote assets, CSS or scripts.
 
 Every render captures its own immutable theme context. Paginated views keep the same already-rendered theme across pages. `account_themes` and `guild_themes` are additive SQLite tables; existing links, snapshots and history are not migrated or rewritten. The new application enables foreign keys for unlink cleanup. A previous application image ignores these extra tables; its older unlink code may leave unused preference rows because its connection does not enforce the new foreign key. Do not describe older-version cleanup as equivalent.
 

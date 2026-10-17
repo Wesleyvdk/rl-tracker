@@ -47,6 +47,7 @@ export class ThemeRegistry {
   private themes = new Map<string, Readonly<CardTheme>>();
   private organizations = new Map<string, string>();
   private custom?: {
+    approved(guild: string): boolean;
     get(id: string): Readonly<CardTheme> | undefined;
     allowed(id: string, guild?: string | null): boolean;
     available(guild?: string | null): Readonly<CardTheme>[];
@@ -140,6 +141,7 @@ export class ThemeRegistry {
         (!!guild &&
           typeof theme.organization === "string" &&
           this.organizations.has(guild) &&
+          this.custom?.approved(guild) === true &&
           this.organizations.get(guild) === theme.organization))
     );
   }
