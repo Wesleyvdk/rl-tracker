@@ -33,6 +33,16 @@ export function parseInteger(value: string): number | null {
 export function canonicalPlaylist(name: string): string {
   return /^snow\s*day$/i.test(name.trim()) ? "Snow Day" : name.trim();
 }
+export function parseStreak(value: string): number | null {
+  const match = /^(win|loss)\s+(?:strk\.?|streak)\s*:?\s*(\d+)$/i.exec(
+    value.trim().replace(/\s+/g, " "),
+  );
+  if (!match) return null;
+  const count = Number(match[2]);
+  return Number.isSafeInteger(count)
+    ? count * (match[1].toLowerCase() === "loss" ? -1 : 1)
+    : null;
+}
 export function parseProfileHtml(html: string): ProfileResult {
   const $ = load(html);
   const title = $("title").text();
@@ -63,10 +73,7 @@ export function parseProfileHtml(html: string): ProfileResult {
     const mmr = parseInteger(item.find(".mmr .value").first().text());
     const matches = parseInteger(item.find("td.matches .value").first().text());
     const result = item.find("td.matches .result").text().trim();
-    const streakMatch = result.match(/\d+/);
-    const streak = streakMatch
-      ? Number(streakMatch[0]) * (/loss/i.test(result) ? -1 : 1)
-      : null;
+    const streak = parseStreak(result);
     if (tableData.some((entry) => entry.playlist === playlist))
       throw new Error(`Duplicate playlist: ${playlist}`);
     tableData.push({

@@ -6,6 +6,7 @@ import { loadCommands } from "./services/commandLoader";
 import { refreshLinkedProfiles } from "./services/profile.service";
 import { shutdownBrowsers } from "./services/browser.service";
 import { db } from "./services/database.service";
+import { statusMessage, replyStatus } from "./services/commandReply.service";
 
 const commands = await loadCommands();
 if (!process.env.BOT_TOKEN) throw new Error("BOT_TOKEN is required");
@@ -49,19 +50,32 @@ client.once(Events.ClientReady, () =>
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
   try {
-    await commands
-      .find((command) => command.data.name === interaction.commandName)
-      ?.execute(client, interaction);
+    const command = commands.find(
+      (command) => command.data.name === interaction.commandName,
+    );
+    if (!command)
+      return replyStatus(
+        interaction,
+        "Command unavailable",
+        "Choose a command from the menu and try again.",
+      );
+    await command.execute(client, interaction);
   } catch (error) {
     console.error("Command failed:", String(error));
     try {
-      const payload = {
-        content: "The request could not be completed. Please retry shortly.",
-        flags: MessageFlags.Ephemeral,
-      } as const;
-      if (interaction.deferred || interaction.replied)
-        await interaction.followUp(payload);
-      else await interaction.reply(payload);
+      const payload = statusMessage(
+        "Couldn't complete command",
+        "Please try again shortly.",
+        "error",
+      );
+      if (interaction.replied)
+        await interaction.followUp({
+          ...payload,
+          flags: MessageFlags.Ephemeral,
+        });
+      else if (interaction.deferred) await interaction.editReply(payload);
+      else
+        await interaction.reply({ ...payload, flags: MessageFlags.Ephemeral });
     } catch {}
   }
 });
