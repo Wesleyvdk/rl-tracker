@@ -5,6 +5,7 @@ export const STANDARD_MODES = [
   "Ranked Duel 1v1",
   "Ranked Doubles 2v2",
   "Ranked Standard 3v3",
+  "Tournament Matches",
   "Dropshot",
   "Hoops",
   "Rumble",
@@ -38,6 +39,7 @@ export interface RankCardInput {
   history?: MmrHistory;
   preview?: boolean;
   bestWinStreaks?: Record<string, number>;
+  theme?: string;
 }
 export function rankAppearance(rank: string) {
   if (rank === "Supersonic Legend") return { color: "#eadfff", icon: 22 };
@@ -66,7 +68,11 @@ export function makeRankCardModel(input: RankCardInput, now = Date.now()) {
   ];
   const modes = [...new Set(names)].map((playlist) => {
     const row = input.ranks.find((r) => r.playlist === playlist),
-      rank = row?.rank || "Rank unavailable";
+      rank =
+        row?.rank ||
+        (playlist === "Tournament Matches"
+          ? "Unavailable"
+          : "Rank unavailable");
     const up = nonnegative(row?.nextMMR),
       down = nonnegative(row?.prevMMR);
     const streak = Number.isSafeInteger(row?.streak) ? row!.streak : null,
@@ -90,6 +96,7 @@ export function makeRankCardModel(input: RankCardInput, now = Date.now()) {
           ? down / (up + down)
           : null,
       ...rankAppearance(rank),
+      ...(playlist === "Tournament Matches" && !row ? { icon: 0 } : {}),
       history: summarizeHistory(
         at ? input.history?.[playlist] || [] : [],
         at || 0,

@@ -31,6 +31,7 @@ export interface Player {
 export interface Command {
   data: CommandData;
   execute: (client: Client, interaction: any) => void;
+  autocomplete?: (interaction: any) => Promise<void>;
   // Add other properties as needed
 }
 

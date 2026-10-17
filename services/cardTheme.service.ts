@@ -1,5 +1,6 @@
 import Canvas, { type SKRSContext2D } from "@napi-rs/canvas";
 import { fileURLToPath } from "node:url";
+import { getTheme } from "./themeRegistry.service";
 export const WIDTH = 1280,
   PAD = 32,
   GAP = 20,
@@ -167,4 +168,118 @@ export function heading(
 }
 export function shortMode(name: string) {
   return name.replace(/^Ranked /, "").replace(/ Matches$/, "");
+}
+
+const logos = new Map<
+  string,
+  Promise<Awaited<ReturnType<typeof Canvas.loadImage>>>
+>();
+/** Immutable rendering context: a concurrent card never changes another card's colors. */
+export function createCardStyle(id?: string) {
+  const theme = getTheme(id),
+    colors = theme.colors;
+  const themedText = (
+    ctx: SKRSContext2D,
+    value: string,
+    x: number,
+    y: number,
+    size: number,
+    color = colors.text,
+    width = 1000,
+    bold = false,
+  ) => text(ctx, value, x, y, size, color, width, bold);
+  const themedBackground = (
+    ctx: SKRSContext2D,
+    width: number,
+    height: number,
+  ) => {
+    if (theme.neon) return background(ctx, width, height);
+    ctx.fillStyle = colors.background;
+    ctx.fillRect(0, 0, width, height);
+  };
+  const themedPill = (
+    ctx: SKRSContext2D,
+    label: string,
+    x: number,
+    y: number,
+    color: string,
+    width: number,
+  ) => {
+    ctx.fillStyle = color + "18";
+    rounded(ctx, x, y, width, 29, theme.neon ? 8 : 3);
+    ctx.fill();
+    themedText(ctx, label, x + 11, y + 20, 15, color, width - 22, true);
+  };
+  const themedPanel = (
+    ctx: SKRSContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    color = colors.accent,
+  ) => {
+    ctx.fillStyle = colors.surface;
+    rounded(ctx, x, y, w, h, theme.radius);
+    ctx.fill();
+    ctx.strokeStyle = colors.border;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.fillRect(x + 1, y + 1, 3, h - 2);
+  };
+  const brand = async (
+    ctx: SKRSContext2D,
+    x: number,
+    y: number,
+    width: number,
+    size = 22,
+  ) => {
+    let offset = 0;
+    if (theme.logo) {
+      if (!logos.has(theme.logo))
+        logos.set(
+          theme.logo,
+          Canvas.loadImage(
+            fileURLToPath(
+              new URL(`../assets/themes/${theme.logo}`, import.meta.url),
+            ),
+          ),
+        );
+      const logo = await logos.get(theme.logo)!;
+      ctx.drawImage(logo, x, y - size + 2, size, size);
+      offset = size + 9;
+    }
+    themedText(
+      ctx,
+      theme.brand || "RL / TRACKER",
+      x + offset,
+      y,
+      size,
+      colors.text,
+      width - offset,
+      true,
+    );
+  };
+  const themedHeading = async (
+    ctx: SKRSContext2D,
+    eyebrow: string,
+    title: string,
+    right: string,
+  ) => {
+    themedText(ctx, eyebrow, 36, 40, 15, colors.muted, 940, true);
+    themedText(ctx, title, 32, 91, 39, colors.text, 950, true);
+    await brand(ctx, 1025, 42, 223);
+    themedText(ctx, right, 1025, 88, 16, colors.muted, 223);
+  };
+  return Object.freeze({
+    theme,
+    colors,
+    text: themedText,
+    background: themedBackground,
+    pill: themedPill,
+    panel: themedPanel,
+    heading: themedHeading,
+    brand,
+    rankColor: (color: string) => (theme.neon ? color : colors.accent),
+  });
 }

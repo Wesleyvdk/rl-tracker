@@ -11,28 +11,35 @@ import {
   GAP,
   TILE,
   TOP,
-  MUTED,
-  WHITE,
   rounded,
-  text,
-  pill,
   date,
   shortDate,
   icon,
-  background,
+  createCardStyle,
+  shortMode,
 } from "./cardTheme.service";
 export function rankCardHeight(count: number) {
-  return TOP + Math.ceil(Math.max(7, count) / 2) * (TILE + GAP) + 60;
+  return TOP + Math.ceil(Math.max(8, count) / 2) * (TILE + GAP) + 60;
 }
 export default async function generateRankCard(
   input: RankCardInput,
 ): Promise<AttachmentBuilder> {
   const model = makeRankCardModel(input),
     height = rankCardHeight(model.modes.length);
+  const style = createCardStyle(input.theme),
+    { text, pill, background } = style,
+    {
+      text: WHITE,
+      muted: MUTED,
+      positive,
+      negative,
+      warning,
+      border,
+    } = style.colors;
   const canvas = Canvas.createCanvas(WIDTH, height),
     ctx = canvas.getContext("2d");
   background(ctx, WIDTH, height);
-  ctx.fillStyle = "#9bb7ff";
+  ctx.fillStyle = style.colors.accent;
   rounded(ctx, PAD, 31, 4, 101, 2);
   ctx.fill();
   text(
@@ -43,7 +50,7 @@ export default async function generateRankCard(
     PAD + 19,
     49,
     15,
-    input.preview ? "#f3cb72" : MUTED,
+    input.preview ? warning : MUTED,
     880,
     true,
   );
@@ -57,13 +64,13 @@ export default async function generateRankCard(
     MUTED,
     860,
   );
-  text(ctx, "RL / TRACKER", 1025, 48, 23, WHITE, 223, true);
+  await style.brand(ctx, 1025, 48, 223, 23);
   pill(
     ctx,
     model.at ? (model.stale ? "CACHED" : "UPDATED") : "TIME UNAVAILABLE",
     1025,
     69,
-    model.stale || !model.at ? "#f3cb72" : "#79e2c2",
+    model.stale || !model.at ? warning : positive,
     223,
   );
   text(
@@ -76,45 +83,28 @@ export default async function generateRankCard(
     223,
   );
   const w = (WIDTH - PAD * 2 - GAP) / 2;
-  for (const [i, m] of model.modes.entries()) {
-    const x =
-        model.modes.length % 2 && i === model.modes.length - 1
-          ? (WIDTH - w) / 2
-          : PAD + (i % 2) * (w + GAP),
+  for (const [i, source] of model.modes.entries()) {
+    const m = { ...source, color: style.rankColor(source.color) };
+    const x = PAD + (i % 2) * (w + GAP),
       y = TOP + Math.floor(i / 2) * (TILE + GAP);
     ctx.save();
-    rounded(ctx, x, y, w, TILE, 18);
+    rounded(ctx, x, y, w, TILE, style.theme.radius);
     ctx.clip();
-    ctx.fillStyle = "#111c2b";
+    ctx.fillStyle = style.theme.neon ? "#111c2b" : style.colors.surface;
     ctx.fillRect(x, y, w, TILE);
-    const wash = ctx.createLinearGradient(x, y, x + w, y + TILE);
-    wash.addColorStop(0, m.color + "13");
-    wash.addColorStop(0.7, m.color + "03");
-    wash.addColorStop(1, m.color + "0b");
-    ctx.fillStyle = wash;
-    ctx.fillRect(x, y, w, TILE);
-    // A quiet version of the same observed curve forms the panel backdrop.
-    // Keep all breaks: decoration must not invent continuous missing history.
-    if (m.history.values.length >= 2) {
-      const backdrop = historyGeometry(m.history.points, w - 30, 110);
-      ctx.save();
-      ctx.globalAlpha = 0.07;
-      ctx.beginPath();
-      for (const p of backdrop) {
-        if (p.y === null) continue;
-        if (p.join) ctx.lineTo(x + 15 + p.x, y + 96 + p.y);
-        else ctx.moveTo(x + 15 + p.x, y + 96 + p.y);
-      }
-      ctx.strokeStyle = m.color;
-      ctx.lineWidth = 12;
-      ctx.stroke();
-      ctx.restore();
-    }
-    const edge = ctx.createLinearGradient(x, y, x + w, y);
-    edge.addColorStop(0, m.color);
-    edge.addColorStop(1, m.color + "08");
-    ctx.fillStyle = edge;
-    ctx.fillRect(x, y, w, 3);
+    if (style.theme.neon) {
+      const wash = ctx.createLinearGradient(x, y, x + w, y + TILE);
+      wash.addColorStop(0, m.color + "13");
+      wash.addColorStop(0.7, m.color + "03");
+      wash.addColorStop(1, m.color + "0b");
+      ctx.fillStyle = wash;
+      ctx.fillRect(x, y, w, TILE);
+      const edge = ctx.createLinearGradient(x, y, x + w, y);
+      edge.addColorStop(0, m.color);
+      edge.addColorStop(1, m.color + "08");
+      ctx.fillStyle = edge;
+    } else ctx.fillStyle = m.color;
+    ctx.fillRect(x, y, w, style.theme.neon ? 3 : 2);
     text(
       ctx,
       String(i + 1).padStart(2, "0"),
@@ -125,23 +115,14 @@ export default async function generateRankCard(
       30,
       true,
     );
-    text(
-      ctx,
-      m.playlist.replace(/^Ranked /, ""),
-      x + 59,
-      y + 37,
-      24,
-      WHITE,
-      w - 167,
-      true,
-    );
+    text(ctx, shortMode(m.playlist), x + 59, y + 37, 24, WHITE, w - 167, true);
     text(ctx, m.rank, x + 24, y + 71, 22, m.color, w - 132, true);
     text(ctx, m.division, x + 24, y + 97, 17, MUTED, 230);
     if (m.icon !== null) {
       const image = await icon(m.icon);
       if (image) {
         ctx.shadowColor = m.color + "70";
-        ctx.shadowBlur = 22;
+        ctx.shadowBlur = style.theme.neon ? 22 : 0;
         ctx.drawImage(image, x + w - 99, y + 19, 74, 74);
         ctx.shadowBlur = 0;
       }
@@ -170,7 +151,7 @@ export default async function generateRankCard(
         plotX,
         y + 108,
         19,
-        delta > 0 ? "#79e2c2" : delta < 0 ? "#ff9eaf" : MUTED,
+        delta > 0 ? positive : delta < 0 ? negative : MUTED,
         plotW,
         true,
       );
@@ -184,7 +165,7 @@ export default async function generateRankCard(
         MUTED,
         plotW,
       );
-    ctx.strokeStyle = "#ffffff0c";
+    ctx.strokeStyle = border;
     ctx.lineWidth = 1;
     for (let line = 0; line < 3; line++) {
       ctx.beginPath();
@@ -227,11 +208,11 @@ export default async function generateRankCard(
       x + 24,
       y + 210,
       13,
-      m.bestWinStreak ? "#f3cb72" : MUTED,
+      m.bestWinStreak ? warning : MUTED,
       225,
       true,
     );
-    ctx.fillStyle = "#ffffff0d";
+    ctx.fillStyle = border;
     ctx.fillRect(x + 24, y + 216, w - 48, 1);
     text(
       ctx,
@@ -256,8 +237,8 @@ export default async function generateRankCard(
       streak === null || streak === 0
         ? MUTED
         : streak > 0
-          ? "#79e2c2"
-          : "#ff9eaf",
+          ? positive
+          : negative,
       133,
     );
     const divX = x + 322,
@@ -271,7 +252,7 @@ export default async function generateRankCard(
       MUTED,
       divW,
     );
-    ctx.fillStyle = "#ffffff12";
+    ctx.fillStyle = border;
     rounded(ctx, divX, y + 253, divW, 4, 2);
     ctx.fill();
     if (m.progress !== null) {
@@ -280,13 +261,13 @@ export default async function generateRankCard(
       ctx.fill();
     }
     ctx.restore();
-    ctx.strokeStyle = "#ffffff0d";
+    ctx.strokeStyle = border;
     ctx.lineWidth = 1;
-    rounded(ctx, x + 0.5, y + 0.5, w - 1, TILE - 1, 18);
+    rounded(ctx, x + 0.5, y + 0.5, w - 1, TILE - 1, style.theme.radius);
     ctx.stroke();
   }
   const footer = height - 38;
-  ctx.fillStyle = "#ffffff12";
+  ctx.fillStyle = border;
   ctx.fillRect(PAD, footer - 24, WIDTH - PAD * 2, 1);
   const times = [
     ...new Set(model.modes.flatMap((m) => m.history.points.map((p) => p.at))),

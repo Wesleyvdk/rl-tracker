@@ -4,6 +4,7 @@ import {
   MessageFlags,
   escapeMarkdown,
 } from "discord.js";
+import { getTheme } from "./themeRegistry.service";
 const colors = { success: 0x79e2c2, error: 0xff9eaf, info: 0x9bb7ff };
 export function statusMessage(
   title: string,
@@ -35,12 +36,12 @@ export async function replyStatus(
     ? interaction.editReply(payload)
     : interaction.reply({ ...payload, flags: MessageFlags.Ephemeral });
 }
-export function imageMessage(images: AttachmentBuilder[]) {
+export function imageMessage(images: AttachmentBuilder[], theme?: string) {
   return {
     content: "",
     embeds: images.map((image) =>
       new EmbedBuilder()
-        .setColor(colors.info)
+        .setColor(parseInt(getTheme(theme).colors.accent.slice(1), 16))
         .setImage(`attachment://${image.name}`),
     ),
     files: images,

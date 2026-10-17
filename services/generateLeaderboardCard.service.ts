@@ -3,13 +3,7 @@ import { AttachmentBuilder } from "discord.js";
 import {
   WIDTH,
   PAD,
-  WHITE,
-  MUTED,
-  background,
-  heading,
-  panel,
-  text,
-  pill,
+  createCardStyle,
   date,
   icon,
   shortMode,
@@ -25,7 +19,11 @@ export default async function generateLeaderboardCards(
   mode: "competitive" | "extra",
   guild: string,
   preview = false,
+  theme?: string,
 ): Promise<AttachmentBuilder[]> {
+  const style = createCardStyle(theme),
+    { text, background, panel, heading } = style,
+    { text: WHITE, muted: MUTED, warning } = style.colors;
   const model = leaderboardModel(accounts, mode),
     pages = Math.max(1, Math.ceil(model.rows.length / 10)),
     images: AttachmentBuilder[] = [];
@@ -35,7 +33,7 @@ export default async function generateLeaderboardCards(
     const canvas = Canvas.createCanvas(WIDTH, height),
       ctx = canvas.getContext("2d");
     background(ctx, WIDTH, height);
-    heading(
+    await heading(
       ctx,
       `${preview ? "DESIGN PREVIEW · " : ""}${mode === "competitive" ? "COMPETITIVE" : "EXTRA MODES"} · LEADERBOARD`,
       guild,
@@ -61,12 +59,12 @@ export default async function generateLeaderboardCards(
         place = page * 10 + i + 1,
         color =
           place === 1
-            ? "#f3cb72"
-            : place === 2
+            ? warning
+            : style.theme.neon && place === 2
               ? "#c2d0e2"
-              : place === 3
+              : style.theme.neon && place === 3
                 ? "#c69070"
-                : "#9bb7ff";
+                : style.colors.accent;
       panel(ctx, PAD, y, WIDTH - PAD * 2, 110, color);
       text(
         ctx,
@@ -89,7 +87,7 @@ export default async function generateLeaderboardCards(
         PAD + 77,
         y + 68,
         12,
-        stale ? "#f3cb72" : MUTED,
+        stale ? warning : MUTED,
         225,
       );
       text(
@@ -126,7 +124,7 @@ export default async function generateLeaderboardCards(
           x,
           y + 76,
           14,
-          look.color,
+          style.rankColor(look.color),
           col - 20,
         );
         text(ctx, rank?.division || "—", x, y + 96, 12, MUTED, col - 20);

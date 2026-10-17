@@ -9,6 +9,7 @@ import { getAccount, updateStats } from "../../services/database.service";
 import { buildTrackerProfileUrl } from "../../services/trackerProfile.service";
 import { STANDARD_MODES } from "../../services/rankCardModel.service";
 import { replyStatus, imageMessage } from "../../services/commandReply.service";
+import { themePreferences } from "../../services/theme.service";
 
 export const data = new SlashCommandBuilder()
   .setName("rank")
@@ -59,6 +60,10 @@ export async function execute(
       );
     const key = profileCache.key(profile.username, profile.platform),
       at = ranks.fetchedAt || 0;
+    const theme = themePreferences.resolve(
+      interaction.user.id,
+      interaction.guildId,
+    );
     const image = await generateRankCard({
       name: profile.username,
       platform: profile.platform,
@@ -66,6 +71,7 @@ export async function execute(
       rewardLevel: ranks.parsedRewardLevel,
       fetchedAt: ranks.fetchedAt,
       stale: ranks.stale,
+      theme,
       bestWinStreaks: profileCache.history.bestWinStreaks(key, at),
       history: profileCache.history.read(
         key,
@@ -73,7 +79,7 @@ export async function execute(
         at,
       ),
     });
-    return interaction.editReply(imageMessage([image]));
+    return interaction.editReply(imageMessage([image], theme));
   } catch (error) {
     console.error(
       "Rank command failed:",

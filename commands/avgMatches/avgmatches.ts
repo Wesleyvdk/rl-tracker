@@ -11,6 +11,7 @@ import { getAccount } from "../../services/database.service";
 import { buildTrackerProfileUrl } from "../../services/trackerProfile.service";
 import { replyStatus } from "../../services/commandReply.service";
 import { cardPager } from "../../services/cardPager.service";
+import { themePreferences } from "../../services/theme.service";
 
 export const data = new SlashCommandBuilder()
   .setName("avgmatches")
@@ -86,6 +87,10 @@ export async function execute(
           : "No season history is available. Try again shortly.",
         "error",
       );
+    const theme = themePreferences.resolve(
+      interaction.user.id,
+      interaction.guildId,
+    );
     const images = await generateAverageCard({
       name: profile.username,
       seasonData: stats.seasonData,
@@ -94,6 +99,7 @@ export async function execute(
       stale: stats.stale,
       partial: stats.partial,
       coverage: stats.coverage,
+      theme,
     });
     if (!images.length)
       return replyStatus(
@@ -101,7 +107,7 @@ export async function execute(
         "History unavailable",
         "No match counts are available for these seasons.",
       );
-    return await cardPager.send(interaction, images);
+    return await cardPager.send(interaction, images, theme);
   } catch (error) {
     console.error(
       "Season command failed:",

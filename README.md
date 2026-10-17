@@ -25,6 +25,8 @@ For direct host execution, install Chromium and set `PUPPETEER_EXECUTABLE_PATH` 
 
 ## Commands and caching
 
+- `/theme list`, `/theme preview`, `/theme set` and `/theme reset` manage linked-account card styles. Slate is the default; Dune, Jade, Rose and the earlier Neon are also available. `/theme server` requires Manage Server and sets a shared server/leaderboard default. Organization packs and server bindings are described in [docs/themes.md](docs/themes.md).
+
 - `/link` and `/unlink` manage the user's linked platform/profile with compact private status embeds. Errors use the same styling.
 - `/rank` returns a cached snapshot immediately when present, with retrieval time. Stale snapshots trigger background refreshes. A new profile waits for one bounded retrieval.
 - `/leaderboard` uses cached snapshots of linked users in the current server and starts missing/stale refreshes in the background. It ranks by the highest MMR among the selected modes, includes real zero MMR, and shows the top 25 players across pages of ten. Each row retains its own snapshot time and cached badge.
@@ -40,7 +42,7 @@ Leaderboard and season cards share the rank card's local fonts, rank icons, colo
 
 ### Rank card appearance and history
 
-`/rank` renders all seven standard modes on one image, with extra named modes retained when reported. Rank-colored panels, bundled rank icons and Inter typography, large MMR figures, streak badges and source-provided division distances keep the main information readable. An amber cached badge and an observation timestamp travel with the image. Rendering uses local assets and makes no network requests.
+`/rank` renders eight standard modes on one image, with Tournament fourth beside Standard 3v3 and extra named modes retained when reported. A missing Tournament row displays `Unavailable` and the unranked icon with unknown MMR; it never borrows an earlier season's rank. Bundled rank icons, Inter typography, large MMR figures, streak badges and source-provided division distances remain readable across themes. The real chart stays in its own plot area; the decorative curve no longer crosses the MMR number. A cached badge and observation timestamp travel with the image. Rendering uses local assets and makes no network requests.
 
 Each panel includes a subtle background curve and a readable graph of **locally observed MMR snapshots**. The change refers to the displayed observations; it is not a last-match change. Graphs use independent scales with visible observed ranges. Points use real observation timestamps; missing MMR/modes and breaks longer than six hours interrupt the line. A single point is shown as a dot, and no history shows a waiting state.
 

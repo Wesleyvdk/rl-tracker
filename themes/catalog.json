@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "themes": [
+    {
+      "id": "slate",
+      "name": "Slate",
+      "description": "Graphite, warm silver and quiet typography",
+      "scope": "public",
+      "radius": 6,
+      "neon": false,
+      "colors": {
+        "background": "#1e2227",
+        "surface": "#292e34",
+        "surfaceAlt": "#32383f",
+        "text": "#f1f0eb",
+        "muted": "#b4b8bc",
+        "border": "#454b52",
+        "accent": "#d1bfa3",
+        "positive": "#acd1b4",
+        "negative": "#ecb0ae",
+        "warning": "#e1c18b"
+      }
+    },
+    {
+      "id": "dune",
+      "name": "Dune",
+      "description": "Warm paper, ink and earthy details",
+      "scope": "public",
+      "radius": 3,
+      "neon": false,
+      "colors": {
+        "background": "#eee5d6",
+        "surface": "#fff9ee",
+        "surfaceAlt": "#e8dece",
+        "text": "#302c27",
+        "muted": "#686055",
+        "border": "#c5b9a6",
+        "accent": "#805036",
+        "positive": "#355d43",
+        "negative": "#9a3f43",
+        "warning": "#795619"
+      }
+    },
+    {
+      "id": "jade",
+      "name": "Jade",
+      "description": "Deep forest with soft sage accents",
+      "scope": "public",
+      "radius": 10,
+      "neon": false,
+      "colors": {
+        "background": "#182e28",
+        "surface": "#213c34",
+        "surfaceAlt": "#2b493f",
+        "text": "#eef3e9",
+        "muted": "#b3c7ba",
+        "border": "#496456",
+        "accent": "#c2d2ae",
+        "positive": "#b7ddbf",
+        "negative": "#eeb8b0",
+        "warning": "#e8cd9f"
+      }
+    },
+    {
+      "id": "rose",
+      "name": "Rose",
+      "description": "Dusty plum, parchment and restrained rose",
+      "scope": "public",
+      "radius": 8,
+      "neon": false,
+      "colors": {
+        "background": "#2c212b",
+        "surface": "#392c36",
+        "surfaceAlt": "#463743",
+        "text": "#f4ecec",
+        "muted": "#c5b4c2",
+        "border": "#65515f",
+        "accent": "#ddabc2",
+        "positive": "#b6d0bb",
+        "negative": "#f0b3b8",
+        "warning": "#e5c4a0"
+      }
+    },
+    {
+      "id": "neon",
+      "name": "Neon",
+      "description": "The original colorful dark theme",
+      "scope": "public",
+      "radius": 18,
+      "neon": true,
+      "colors": {
+        "background": "#111c30",
+        "surface": "#141f30",
+        "surfaceAlt": "#25324b",
+        "text": "#f3f6ff",
+        "muted": "#9dafc5",
+        "border": "#354359",
+        "accent": "#9bb7ff",
+        "positive": "#79e2c2",
+        "negative": "#ff9eaf",
+        "warning": "#f3cb72"
+      }
+    },
+    {
+      "id": "rsc",
+      "name": "RSC",
+      "description": "Organization concept: charcoal, competition red and white",
+      "scope": "organization",
+      "organization": "rsc",
+      "brand": "RSC / TRACKER",
+      "logo": "rsc/logo.webp",
+      "radius": 4,
+      "neon": false,
+      "colors": {
+        "background": "#141d24",
+        "surface": "#202b33",
+        "surfaceAlt": "#303b44",
+        "text": "#f8f6f4",
+        "muted": "#bbc1c7",
+        "border": "#4a545e",
+        "accent": "#ff7c9e",
+        "positive": "#b9d6c1",
+        "negative": "#ff9dae",
+        "warning": "#e5c99b"
+      }
+    }
+  ]
+}
