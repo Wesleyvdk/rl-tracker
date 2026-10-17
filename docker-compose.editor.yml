@@ -1,0 +1,16 @@
+# Optional public editor: docker compose -f docker-compose.yml -f docker-compose.editor.yml up -d --no-deps bot
+services:
+  bot:
+    environment:
+      THEME_EDITOR_BASE_URL: https://trackerbot.aylian-studios.com
+      THEME_EDITOR_HOST: 0.0.0.0
+      THEME_EDITOR_PORT: "8790"
+    networks:
+      default: {}
+      editor_proxy:
+        aliases:
+          - rl-tracker-editor
+networks:
+  editor_proxy:
+    external: true
+    name: nginxproxymanager_default

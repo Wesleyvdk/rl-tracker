@@ -73,25 +73,25 @@ test("catalog rejects malformed organization IDs, unsafe assets/colors and dupli
   expect(registry().allowed("rsc", otherGuild)).toBe(false);
   expect(registry().allowed("rsc", guild)).toBe(true);
   expect(themeRegistry.allowed("rsc", guild)).toBe(false);
-  expect(getTheme("not-a-theme").id).toBe("slate");
+  expect(getTheme("not-a-theme").id).toBe("rose");
 });
 test("user/server/default inheritance isolates duplicate links, guilds and organization branding", () => {
   const { db, prefs } = store();
   try {
-    expect(prefs.resolve("a", guild)).toBe("slate");
+    expect(prefs.resolve("a", guild)).toBe("rose");
     prefs.setGuild(guild, "jade");
     expect(prefs.resolve("a", guild)).toBe("jade");
     prefs.setUser("a", "dune", guild);
     expect(prefs.resolve("a", guild)).toBe("dune");
     expect(prefs.resolve("b", guild)).toBe("jade");
     expect(prefs.guildTheme(guild)).toBe("jade");
-    expect(prefs.guildTheme(otherGuild)).toBe("slate");
+    expect(prefs.guildTheme(otherGuild)).toBe("rose");
     prefs.resetUser("a");
     expect(prefs.resolve("a", guild)).toBe("jade");
     prefs.setUser("a", "rsc", guild);
     expect(prefs.resolve("a", guild)).toBe("rsc");
-    expect(prefs.resolve("a", otherGuild)).toBe("slate");
-    expect(prefs.resolve("a")).toBe("slate");
+    expect(prefs.resolve("a", otherGuild)).toBe("rose");
+    expect(prefs.resolve("a")).toBe("rose");
     expect(() => prefs.setUser("b", "rsc", otherGuild)).toThrow();
     expect(() => prefs.setUser("missing", "jade")).toThrow();
     db.query(
@@ -99,7 +99,7 @@ test("user/server/default inheritance isolates duplicate links, guilds and organ
     ).run();
     expect(prefs.resolve("a", guild)).toBe("jade");
     prefs.setGuild(guild);
-    expect(prefs.resolve("a", guild)).toBe("slate");
+    expect(prefs.resolve("a", guild)).toBe("rose");
   } finally {
     db.close();
   }
@@ -117,7 +117,7 @@ test("additive theme setup preserves existing rows, relink retains preference, u
     expect(prefs.resolve("a")).toBe("dune");
     db.query("DELETE FROM users WHERE discord_id='a'").run();
     expect(db.query("SELECT * FROM account_themes").all()).toEqual([]);
-    expect(prefs.resolve("a")).toBe("slate");
+    expect(prefs.resolve("a")).toBe("rose");
     expect(db.query("PRAGMA foreign_key_check").all()).toEqual([]);
   } finally {
     db.close();

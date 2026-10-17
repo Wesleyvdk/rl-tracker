@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Organization theme editor · Aylian Studios</title>
+    <link rel="stylesheet" href="/assets/editor.css" />
+    <script src="/assets/editor.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="wordmark" href="/editor"
+        ><span class="mark">A</span> AYLIAN
+        <span class="muted">STUDIOS</span></a
+      ><span class="private">PRIVATE EDITOR <span id="expiry"></span></span>
+    </header>
+    <main class="workspace">
+      <section class="settings" aria-labelledby="editor-title">
+        <p class="eyebrow">MAKE IT YOURS</p>
+        <h1 id="editor-title">Your team's <br />signature.</h1>
+        <p class="intro">A familiar rank. An unmistakable identity.</p>
+        <form id="theme-form">
+          <fieldset>
+            <legend>01 <span>Identity</span></legend>
+            <label
+              >Theme name<input
+                id="name"
+                name="name"
+                maxlength="40"
+                required
+                autocomplete="off" /></label
+            ><label
+              >Card signature<input
+                id="brand"
+                name="brand"
+                maxlength="22"
+                required
+                autocomplete="off" /></label
+            ><label
+              >Starting palette<select id="base" name="base">
+                <option value="rose">Rose</option>
+                <option value="slate">Slate</option>
+              </select></label
+            >
+          </fieldset>
+          <fieldset>
+            <legend>02 <span>Canvas</span></legend>
+            <label
+              >Background design<select id="design" name="design">
+                <option value="solid">Solid</option>
+                <option value="gradient">Gradient</option>
+                <option value="aurora">Soft light</option>
+                <option value="contours">Contours</option>
+              </select></label
+            >
+            <div id="background-colors"></div>
+            <label
+              >Gradient direction <output id="angle-value"></output
+              ><input
+                id="angle"
+                type="range"
+                min="0"
+                max="360"
+                step="1" /></label
+            ><label
+              >Card corners <output id="radius-value"></output
+              ><input id="radius" type="range" min="0" max="20" step="1"
+            /></label>
+          </fieldset>
+          <fieldset>
+            <legend>03 <span>Details</span></legend>
+            <div id="detail-colors"></div>
+            <details>
+              <summary>Text & status colors</summary>
+              <div id="text-colors"></div>
+            </details>
+          </fieldset>
+          <div class="actions">
+            <button class="secondary" id="save" type="submit">Save draft</button
+            ><button class="primary" id="apply" type="button" disabled>
+              Apply to server <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </form>
+        <p id="notice" class="notice" role="status" aria-live="polite">
+          Connecting to your private editor…
+        </p>
+      </section>
+      <section class="preview-area" aria-label="Card preview">
+        <div class="preview-toolbar">
+          <span class="preview-label"><i></i> LIVE PREVIEW</span>
+          <div class="tabs" role="group" aria-label="Preview card type">
+            <button type="button" data-kind="rank" aria-pressed="true">
+              Rank</button
+            ><button type="button" data-kind="leaderboard" aria-pressed="false">
+              Leaderboard</button
+            ><button type="button" data-kind="history" aria-pressed="false">
+              History
+            </button>
+          </div>
+        </div>
+        <div class="preview-canvas">
+          <img
+            id="preview"
+            alt="Your organization theme with fictional Rocket League ranks and match history"
+            hidden
+          />
+          <div id="preview-placeholder">Your preview will appear here.</div>
+        </div>
+        <div class="preview-footer">
+          <span>Sample player · fictional stats</span
+          ><span>Rank colors follow the rank.</span>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

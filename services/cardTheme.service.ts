@@ -1,6 +1,6 @@
 import Canvas, { type SKRSContext2D } from "@napi-rs/canvas";
 import { fileURLToPath } from "node:url";
-import { getTheme } from "./themeRegistry.service";
+import { getTheme, type ThemeInput } from "./themeRegistry.service";
 export const WIDTH = 1280,
   PAD = 32,
   GAP = 20,
@@ -175,7 +175,7 @@ const logos = new Map<
   Promise<Awaited<ReturnType<typeof Canvas.loadImage>>>
 >();
 /** Immutable rendering context: a concurrent card never changes another card's colors. */
-export function createCardStyle(id?: string) {
+export function createCardStyle(id?: ThemeInput) {
   const theme = getTheme(id),
     colors = theme.colors;
   const themedText = (
@@ -194,8 +194,55 @@ export function createCardStyle(id?: string) {
     height: number,
   ) => {
     if (theme.neon) return background(ctx, width, height);
+    const design = theme.backgroundDesign;
     ctx.fillStyle = colors.background;
     ctx.fillRect(0, 0, width, height);
+    if (design && design.style !== "solid") {
+      const radians = (design.angle * Math.PI) / 180;
+      const dx = (Math.cos(radians) * width) / 2,
+        dy = (Math.sin(radians) * height) / 2;
+      const gradient = ctx.createLinearGradient(
+        width / 2 - dx,
+        height / 2 - dy,
+        width / 2 + dx,
+        height / 2 + dy,
+      );
+      gradient.addColorStop(0, colors.background);
+      gradient.addColorStop(1, design.end);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      if (design.style === "aurora") {
+        for (const [x, y, radius] of [
+          [width * 0.95, height * 0.1, width * 0.8],
+          [width * 0.05, height * 0.85, width * 0.65],
+        ]) {
+          const light = ctx.createRadialGradient(x, y, 0, x, y, radius);
+          light.addColorStop(0, colors.accent + "12");
+          light.addColorStop(1, colors.accent + "00");
+          ctx.fillStyle = light;
+          ctx.fillRect(0, 0, width, height);
+        }
+      }
+      if (design.style === "contours") {
+        ctx.save();
+        ctx.strokeStyle = colors.accent + "0c";
+        ctx.lineWidth = 1;
+        for (let n = 0; n < 16; n++) {
+          ctx.beginPath();
+          ctx.ellipse(
+            width * 1.08,
+            height * -0.12,
+            150 + n * 105,
+            130 + n * 115,
+            0.3,
+            0,
+            Math.PI * 2,
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
   };
   const themedPill = (
     ctx: SKRSContext2D,
@@ -280,6 +327,41 @@ export function createCardStyle(id?: string) {
     panel: themedPanel,
     heading: themedHeading,
     brand,
-    rankColor: (color: string) => (theme.neon ? color : colors.accent),
+    // Rank meaning belongs to the data, independently of surrounding branding.
+    rankColor: (color: string) => readableRankColor(color, colors.surface),
   });
+}
+
+export function luminance(hex: string) {
+  const v = hex
+    .slice(1)
+    .match(/../g)!
+    .map((x) => parseInt(x, 16) / 255)
+    .map((x) => (x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4));
+  return v[0] * 0.2126 + v[1] * 0.7152 + v[2] * 0.0722;
+}
+export function contrast(a: string, b: string) {
+  const x = luminance(a),
+    y = luminance(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+export function readableRankColor(color: string, surface: string) {
+  const rgb = color
+    .slice(1)
+    .match(/../g)!
+    .map((x) => parseInt(x, 16));
+  const target = luminance(surface) > 0.35 ? 0 : 255;
+  for (let n = 0; n <= 20; n++) {
+    const adjusted =
+      "#" +
+      rgb
+        .map((x) =>
+          Math.round(x + ((target - x) * n) / 20)
+            .toString(16)
+            .padStart(2, "0"),
+        )
+        .join("");
+    if (contrast(adjusted, surface) >= 4.5) return adjusted;
+  }
+  return target === 0 ? "#000000" : "#ffffff";
 }

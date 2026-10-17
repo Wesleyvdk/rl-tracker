@@ -1,4 +1,5 @@
 import Canvas from "@napi-rs/canvas";
+import type { ThemeInput } from "./themeRegistry.service";
 import { AttachmentBuilder } from "discord.js";
 import {
   WIDTH,
@@ -19,7 +20,7 @@ export default async function generateLeaderboardCards(
   mode: "competitive" | "extra",
   guild: string,
   preview = false,
-  theme?: string,
+  theme?: ThemeInput,
 ): Promise<AttachmentBuilder[]> {
   const style = createCardStyle(theme),
     { text, background, panel, heading } = style,

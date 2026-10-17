@@ -1,6 +1,5 @@
 import {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   MessageFlags,
   ApplicationIntegrationType,
   InteractionContextType,
@@ -12,6 +11,8 @@ import { getAccount } from "../../services/database.service";
 import { themePreferences } from "../../services/theme.service";
 import { getTheme } from "../../services/themeRegistry.service";
 import themePreview from "../../services/themePreview.service";
+import { organizations } from "../../services/organization.service";
+import { guildActor } from "../../services/guildAuthorization.service";
 import {
   replyStatus,
   statusMessage,
@@ -62,6 +63,11 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand((s) =>
     s
+      .setName("editor")
+      .setDescription("Open your organization's private 24-hour theme editor"),
+  )
+  .addSubcommand((s) =>
+    s
       .setName("server")
       .setDescription(
         "Set the server theme; omit style to reset (Manage Server)",
@@ -90,6 +96,45 @@ export async function execute(
 ) {
   try {
     const action = interaction.options.getSubcommand();
+    if (action === "editor") {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      if (!interaction.guildId) throw new Error("Server required");
+      const base = process.env.THEME_EDITOR_BASE_URL;
+      if (!base)
+        return replyStatus(
+          interaction,
+          "Editor unavailable",
+          "The web editor hasn't been configured yet.",
+        );
+      const actor = await guildActor(
+        client,
+        interaction.guildId,
+        interaction.user.id,
+      );
+      if (!organizations.can(interaction.guildId, actor, "themes"))
+        return replyStatus(
+          interaction,
+          "Theme editor access required",
+          "Ask a server admin or a delegated theme editor.",
+          "error",
+        );
+      try {
+        const link = organizations.issueLink(interaction.guildId, actor.id);
+        return interaction.editReply(
+          statusMessage(
+            "Organization theme editor",
+            `[Open your editor](${new URL(`/editor/${link.token}`, base).toString()})\nExpires <t:${Math.floor(link.expiresAt / 1000)}:R>. Sign in with this Discord account.`,
+          ),
+        );
+      } catch (e) {
+        return replyStatus(
+          interaction,
+          "Editor unavailable",
+          e instanceof Error ? e.message : "Please try again.",
+          "error",
+        );
+      }
+    }
     if (action === "list") {
       const current = getTheme(
         themePreferences.resolve(interaction.user.id, interaction.guildId),
@@ -113,7 +158,13 @@ export async function execute(
           "Server only",
           "Use this command in your server.",
         );
-      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild))
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const actor = await guildActor(
+        client,
+        interaction.guildId,
+        interaction.user.id,
+      );
+      if (!organizations.can(interaction.guildId, actor, "themes"))
         return replyStatus(
           interaction,
           "Manage Server required",
