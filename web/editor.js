@@ -32,6 +32,7 @@ let theme,
   busy = false,
   kind = "rank",
   appliedRevision = -1,
+  draftPublished = false,
   timer,
   sequence = 0,
   previewUrl,
@@ -45,7 +46,7 @@ function refreshActions() {
     !theme ||
     dirty ||
     !revision ||
-    appliedRevision === revision ||
+    draftPublished ||
     previewState !== "ready" ||
     previewTheme !== JSON.stringify(theme);
 }
@@ -316,6 +317,7 @@ $("theme-form").addEventListener("submit", async (event) => {
   try {
     const r = await api("/api/save", { revision, theme });
     revision = r.revision;
+    draftPublished = false;
     dirty = JSON.stringify(theme) !== saved;
     await preview();
     notice(
@@ -335,6 +337,7 @@ $("apply").addEventListener("click", async () => {
   if (
     busy ||
     dirty ||
+    draftPublished ||
     !revision ||
     previewState !== "ready" ||
     previewTheme !== JSON.stringify(theme)
@@ -346,6 +349,7 @@ $("apply").addEventListener("click", async () => {
   try {
     await api("/api/apply", { revision: applyingRevision });
     appliedRevision = applyingRevision;
+    draftPublished = true;
     notice(
       dirty || JSON.stringify(theme) !== applyingTheme
         ? "Saved draft applied. New changes remain unsaved."
@@ -370,6 +374,7 @@ async function start() {
     theme = r.theme;
     revision = r.revision;
     appliedRevision = r.appliedRevision ?? -1;
+    draftPublished = !!r.draftPublished;
     csrf = r.csrf;
     fill();
     $("expiry").textContent =
@@ -381,8 +386,10 @@ async function start() {
     $("theme-form").inert = false;
     lock(false);
     notice(
-      revision && appliedRevision === revision
-        ? "This saved draft is already the server default."
+      draftPublished
+        ? appliedRevision === revision
+          ? "This saved draft is already the server default."
+          : "This draft was published previously. Save a new draft to apply again."
         : revision
           ? "Draft loaded."
           : "Choose your colors and save your draft.",

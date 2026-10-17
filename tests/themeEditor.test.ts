@@ -586,3 +586,34 @@ test("arbitrary palettes preview, save and apply unchanged with per-surface ink 
     f.db.close();
   }
 });
+
+test("published drafts stay marked published after another server default is selected", async () => {
+  const f = await webFixture();
+  try {
+    await f.post("/api/save", { revision: 0, theme: defaultEditorTheme() });
+    await f.post("/api/apply", { revision: 1 });
+    let state = (await (
+      await f.request("/api/theme", { headers: f.headers })
+    ).json()) as any;
+    expect(state.draftPublished).toBe(true);
+    expect(state.appliedRevision).toBe(1);
+    f.prefs.setGuild(guild, "slate");
+    state = (await (
+      await f.request("/api/theme", { headers: f.headers })
+    ).json()) as any;
+    expect(state.draftPublished).toBe(true);
+    expect(state.appliedRevision).toBe(-1);
+    expect((await f.post("/api/apply", { revision: 1 })).status).toBe(400);
+    expect(
+      (await f.post("/api/save", { revision: 1, theme: state.theme })).status,
+    ).toBe(200);
+    state = (await (
+      await f.request("/api/theme", { headers: f.headers })
+    ).json()) as any;
+    expect(state.draftPublished).toBe(false);
+    expect(state.revision).toBe(2);
+    expect((await f.post("/api/apply", { revision: 2 })).status).toBe(200);
+  } finally {
+    f.db.close();
+  }
+});

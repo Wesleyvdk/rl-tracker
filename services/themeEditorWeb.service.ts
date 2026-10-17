@@ -440,8 +440,14 @@ export function createThemeEditorHandler(options: EditorWebOptions) {
             active = store.db
               .query("SELECT theme_id FROM guild_themes WHERE guild_id=?")
               .get(link.guild_id) as { theme_id: string } | null;
+          const draftPublished = !!store.db
+            .query(
+              "SELECT 1 FROM organization_theme_revisions WHERE guild_id=? AND revision=?",
+            )
+            .get(link.guild_id, draft.revision);
           return json({
             ...draft,
+            draftPublished,
             appliedRevision:
               active?.theme_id === `custom-${link.guild_id}-${draft.revision}`
                 ? draft.revision
